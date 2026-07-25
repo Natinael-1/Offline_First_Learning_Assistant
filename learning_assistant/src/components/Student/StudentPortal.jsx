@@ -1,4 +1,9 @@
 import { useState, useEffect } from "react";
+import CourseMaterialsTab from "./CourseMaterialsTab.jsx";
+import CourseAssignmentsTab from "./CourseAssignmentsTab.jsx";
+import CourseQuizzesTab from "./CourseQuizzesTab.jsx";
+import CourseNotices from "./CourseNoticesTab.jsx";
+import CourseDiscussionTab from "./CourseDiscussionTab.jsx";
 /*
 Check,
 Bookmark,
@@ -18,13 +23,10 @@ import {
   Sparkles,
   ArrowLeft,
   Search,
-  Send,
   X,
   Edit3,
   Wifi,
   WifiOff,
-  Eye,
-  Play,
   Award,
 } from "lucide-react";
 
@@ -489,6 +491,12 @@ export default function StudentPortal({
 
         {/* Dynamic Status Pill */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={onLogout}
+            className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
+          >
+            Logout
+          </button>
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold transition ${
               isOnlineSimulated
@@ -496,12 +504,6 @@ export default function StudentPortal({
                 : "bg-amber-50 text-amber-800 border-amber-200"
             }`}
           >
-            <button
-              onClick={onLogout}
-              className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
-            >
-              Logout
-            </button>
             {isOnlineSimulated ? (
               <Wifi className="h-4 w-4 text-emerald-600" />
             ) : (
@@ -650,10 +652,10 @@ export default function StudentPortal({
         /* VIEW LEVEL 2: DETAILED COURSE WORKSPACE (5 TABS) */
         <div className="space-y-6 mx-10 md:mx-40">
           {/* Workspace Back Bar */}
-          <div className="flex items-center justify-between">
+          <div className="flex  items-center justify-between">
             <button
               onClick={() => setActiveCourseId(null)}
-              className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-indigo-600 transition bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm"
+              className="flex mr-2 items-center gap-2 text-xs font-bold text-slate-600 hover:text-indigo-600 transition bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Back to All Courses</span>
@@ -667,7 +669,7 @@ export default function StudentPortal({
                   setCardIndex(0);
                   setIsCardFlipped(false);
                 }}
-                className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
+                className="flex ml-2 items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
               >
                 <Sparkles className="h-4 w-4 text-indigo-600" />
                 <span>
@@ -680,13 +682,13 @@ export default function StudentPortal({
           {/* Active Course Master Banner */}
           <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md space-y-3">
             <div className="flex justify-between items-start">
-              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+              <span className="bg-indigo-500/20 text-indigo-300 mr-2 border border-indigo-500/30 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
                 {activeCourse.subject}
               </span>
 
               <button
                 onClick={(e) => handleToggleDownloadPack(activeCourse.id, e)}
-                className={`flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-xl transition border ${
+                className={`flex ml-2 items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-xl transition border ${
                   cachedCourseIds.includes(activeCourse.id)
                     ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
                     : "bg-indigo-600 hover:bg-indigo-700 text-white border-transparent"
@@ -775,184 +777,45 @@ export default function StudentPortal({
 
           {/* TAB 1: 📖 MATERIALS & PDF VIEWER */}
           {activeTab === "materials" && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-              <h3 className="font-bold text-base text-slate-900">
-                Course Materials & Textbook Guides
-              </h3>
-              <p className="text-xs text-slate-500">
-                Click any guide to open the in-app document reader and take
-                private study notes offline.
-              </p>
-
-              <div className="divide-y divide-slate-100 border-t border-slate-100">
-                {activeCourse.materials.map((mat) => (
-                  <div
-                    key={mat.id}
-                    className="py-4 flex items-center justify-between gap-4"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-indigo-600" />
-                        <h4 className="font-bold text-slate-800 text-sm">
-                          {mat.title}
-                        </h4>
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        Size: {mat.size} • Est. Read Time: {mat.readTime}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setActiveMaterial(mat)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5 shrink-0"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      <span>Open Guide</span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <CourseMaterialsTab
+              activeCourse={activeCourse}
+              setActiveMaterial={setActiveMaterial}
+            />
           )}
 
           {/* TAB 2: 📝 ASSIGNMENTS & WORKSHEETS */}
           {activeTab === "assignments" && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-              <h3 className="font-bold text-base text-slate-900">
-                Worksheets & Practice Problems
-              </h3>
-
-              {activeCourse.worksheets.length === 0 ? (
-                <p className="text-xs text-slate-500 italic py-4">
-                  No assignments published for this course yet.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {activeCourse.worksheets.map((ws) => (
-                    <div
-                      key={ws.id}
-                      className="p-4 border border-slate-200 rounded-xl flex items-center justify-between gap-4"
-                    >
-                      <div>
-                        <h4 className="font-bold text-slate-800 text-sm">
-                          {ws.title}
-                        </h4>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          Due Date: {ws.dueDate}
-                        </p>
-                      </div>
-
-                      <span
-                        className={`text-xs font-bold px-3 py-1 rounded-lg ${
-                          ws.status === "Completed"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-amber-50 text-amber-700"
-                        }`}
-                      >
-                        {ws.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <CourseAssignmentsTab activeCourse={activeCourse} />
           )}
-
           {/* TAB 3: 🧪 QUIZZES & SELF-GRADING ENGINE */}
           {activeTab === "quizzes" && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-              <h3 className="font-bold text-base text-slate-900">
-                Interactive Offline Evaluations
-              </h3>
-              <p className="text-xs text-slate-500">
-                Quizzes taken offline grade automatically on your device and
-                queue scores for sync when connected.
-              </p>
-
-              {activeCourse.quizzes.map((quiz) => {
-                const pastAttempt = quizAttempts.find(
-                  (a) => a.quizId === quiz.id,
-                );
-
-                return (
-                  <div
-                    key={quiz.id}
-                    className="p-5 border border-slate-200 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4"
-                  >
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-slate-900 text-sm">
-                        {quiz.title}
-                      </h4>
-                      <p className="text-xs text-slate-500">
-                        {quiz.questions.length} Questions • Time:{" "}
-                        {quiz.timeLimit}
-                      </p>
-
-                      {pastAttempt && (
-                        <div className="pt-1 flex items-center gap-2">
-                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
-                            Previous Score: {pastAttempt.score}%
-                          </span>
-                          {pastAttempt.status === "pending_sync" && (
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                              ⏳ Saved locally — Pending upload
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => handleStartQuiz(quiz)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2 self-start sm:self-auto"
-                    >
-                      <Play className="h-3.5 w-3.5 fill-white" />
-                      <span>
-                        {pastAttempt ? "Retake Quiz" : "Start Offline Quiz"}
-                      </span>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+            <CourseQuizzesTab
+              activeCourse={activeCourse}
+              quizAttempts={quizAttempts}
+              handleStartQuiz={handleStartQuiz}
+            />
           )}
-
           {/* TAB 4: 📢 NOTICES */}
           {activeTab === "notices" && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-              <h3 className="font-bold text-base text-slate-900">
-                Instructor Announcements
-              </h3>
-
-              <div className="space-y-3">
-                {activeCourse.announcements.map((ann) => (
-                  <div
-                    key={ann.id}
-                    className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1"
-                  >
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-indigo-700">
-                        {ann.title}
-                      </span>
-                      <span className="text-slate-400">{ann.date}</span>
-                    </div>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      {ann.content}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <CourseNotices activeCourse={activeCourse} />
           )}
 
           {/* TAB 5: 💬 Q&A DISCUSSION BOARD */}
           {activeTab === "discussion" && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+            <CourseDiscussionTab
+              handlePostComment={handlePostComment}
+              newCommentText={newCommentText}
+              setNewCommentText={setNewCommentText}
+              discussionsState={discussionsState}
+              activeCourse={activeCourse}
+            />
+          )}
+          {/*<div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
               <h3 className="font-bold text-base text-slate-900">
                 Course Q&A Discussion Board
               </h3>
 
-              {/* Comment Post Form */}
+              {/* Comment Post Form *
               <form onSubmit={handlePostComment} className="space-y-3">
                 <textarea
                   rows={3}
@@ -971,7 +834,7 @@ export default function StudentPortal({
                 </button>
               </form>
 
-              {/* Discussions Feed */}
+              {/* Discussions Feed *
               <div className="space-y-4 pt-4 border-t border-slate-100">
                 {(
                   discussionsState[activeCourse.id] ||
@@ -1005,7 +868,7 @@ export default function StudentPortal({
                       {disc.text}
                     </p>
 
-                    {/* Replies */}
+                    {/* Replies *
                     {disc.replies &&
                       disc.replies.map((reply, idx) => (
                         <div
@@ -1024,8 +887,7 @@ export default function StudentPortal({
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            </div>*/}
         </div>
       )}
 
@@ -1238,6 +1100,52 @@ export default function StudentPortal({
           </div>
         </div>
       )}
+
+      {/*<footer className="bg-slate-900 text-slate-400 border-t border-slate-800 w-full mt-auto">
+        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6 text-xs">
+          {/* Left Side: Copyright & Meta Info *
+          <div className="text-center md:text-left space-y-1">
+            <p className="font-medium text-slate-300">
+              &copy; {new Date().getFullYear()} Offline-First Learning
+              Assistant. All rights reserved.
+            </p>
+            <p className="text-[10px] text-slate-500">
+              Educational resource portal verified under school-authorized
+              domains.
+            </p>
+          </div>
+
+          {/* Right Side: Responsive Links & Live Sync System Status *
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-[11px]">
+            <div className="flex gap-4">
+              <button
+                onClick={() => setActiveTab("about")}
+                className="hover:text-indigo-400 transition"
+              >
+                Our Mission
+              </button>
+              <button
+                onClick={() => setActiveTab("contact")}
+                className="hover:text-indigo-400 transition"
+              >
+                Support Desk
+              </button>
+            </div>
+
+            {/* Small design divider visible only on larger devices *
+            <span className="hidden sm:inline text-slate-700">|</span>
+
+            {/* Operational Sync Status Pill *
+            <div className="flex items-center gap-2 text-slate-500">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span>Gateway Standby</span>
+            </div>
+          </div>
+        </div>
+      </footer>*/}
     </div>
   );
 }
