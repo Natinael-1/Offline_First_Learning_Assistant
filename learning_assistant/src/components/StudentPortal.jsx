@@ -1,0 +1,1243 @@
+import { useState, useEffect } from "react";
+/*
+Check,
+Bookmark,
+Trash2,
+Layers,
+AlertCircle,
+HelpCircle
+*/
+import {
+  BookOpen,
+  Download,
+  CheckCircle,
+  Clock,
+  MessageSquare,
+  FileText,
+  Flame,
+  Sparkles,
+  ArrowLeft,
+  Search,
+  Send,
+  X,
+  Edit3,
+  Wifi,
+  WifiOff,
+  Eye,
+  Play,
+  Award,
+} from "lucide-react";
+
+// Seed Initial Mock Courses Data (Matches PostgreSQL Schema)
+const INITIAL_COURSES = [
+  {
+    id: 101,
+    title: "Frontend Web Development",
+    subject: "Computer Science",
+    teacher: "Instructor Amina",
+    description:
+      "Master modern responsive design, HTML5, CSS Grid, Flexbox, and JavaScript fundamentals.",
+    streakDays: 4,
+    materials: [
+      {
+        id: "mat_101_1",
+        title: "HTML5 Semantic Architecture & Standards.pdf",
+        size: "2.8 MB",
+        type: "pdf",
+        readTime: "15 min",
+        content:
+          "Semantic HTML introduces meaning to the web page rather than just presentation. For example, using <header>, <nav>, <main>, and <footer> tags helps search engines and screen readers parse content structure efficiently.",
+      },
+      {
+        id: "mat_101_2",
+        title: "CSS Flexbox & Responsive Layout Guide.pdf",
+        size: "3.4 MB",
+        type: "pdf",
+        readTime: "25 min",
+        content:
+          "Flexbox (Flexible Box Layout) is designed for one-dimensional layouts. Key properties include display: flex, justify-content (alignment along main axis), and align-items (alignment along cross axis).",
+      },
+      {
+        id: "mat_101_3",
+        title: "PWA Service Worker Fundamentals.pdf",
+        size: "4.1 MB",
+        type: "pdf",
+        readTime: "30 min",
+        content:
+          "Service Workers act as proxy servers between the web application, the browser, and the network. They enable offline capabilities, intercept network requests, and manage local Cache Storage.",
+      },
+    ],
+    worksheets: [
+      {
+        id: "ws_101_1",
+        title: "Responsive Navigation Bar Exercise",
+        dueDate: "Tomorrow, 11:59 PM",
+        status: "In Progress",
+      },
+      {
+        id: "ws_101_2",
+        title: "CSS Grid Photo Gallery Challenge",
+        dueDate: "Jul 28, 2026",
+        status: "Not Started",
+      },
+    ],
+    quizzes: [
+      {
+        id: "quiz_101_1",
+        title: "CSS Grid & Flexbox Self-Evaluation",
+        timeLimit: "10 mins",
+        questions: [
+          {
+            id: 1,
+            question: "Which CSS property is used to create a flex container?",
+            options: [
+              "display: flex",
+              "position: flex",
+              "flex-direction: row",
+              "align-content: flex",
+            ],
+            correctAnswer: 0,
+          },
+          {
+            id: 2,
+            question: "What is the primary function of a PWA Service Worker?",
+            options: [
+              "Connect directly to PostgreSQL",
+              "Intercept network calls & handle offline caching",
+              "Style HTML elements",
+              "Compress images on the cloud",
+            ],
+            correctAnswer: 1,
+          },
+          {
+            id: 3,
+            question:
+              "Which HTML5 tag is most appropriate for independent, self-contained content?",
+            options: ["<div>", "<section>", "<article>", "<span>"],
+            correctAnswer: 2,
+          },
+        ],
+      },
+    ],
+    announcements: [
+      {
+        id: "ann_101_1",
+        date: "Jul 22, 2026",
+        title: "Live Q&A Session Postponed",
+        content:
+          "Our live review is moved to Friday at 3:00 PM CAT. Please make sure you have downloaded the PWA PDF guide in advance!",
+      },
+      {
+        id: "ann_101_2",
+        date: "Jul 18, 2026",
+        title: "New Study Pack Released",
+        content:
+          "Chapter 3 study pack is now uploaded. Click 'Download Complete Course Pack' to cache it for offline reading.",
+      },
+    ],
+    discussions: [
+      {
+        id: "disc_101_1",
+        author: "Natinael Boda",
+        role: "Student",
+        date: "Jul 21, 2026",
+        text: "When we use grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)), does it wrap automatically on smaller screens?",
+        status: "synced",
+        replies: [
+          {
+            author: "Instructor Amina",
+            role: "Teacher",
+            date: "Jul 21, 2026",
+            text: "Yes Natinael! auto-fit will collapse empty tracks and stretch remaining items to fit the available space.",
+          },
+        ],
+      },
+    ],
+    flashcards: [
+      {
+        front: "What does PWA stand for?",
+        back: "Progressive Web Application",
+      },
+      {
+        front: "Which hook executes side-effects in React?",
+        back: "useEffect()",
+      },
+      {
+        front: "Which CSS display mode handles 2D layouts?",
+        back: "display: grid",
+      },
+    ],
+  },
+  {
+    id: 102,
+    title: "Introduction to PostgreSQL",
+    subject: "Computer Science",
+    teacher: "Instructor Amina",
+    description:
+      "Relational database modeling, SQL syntax, indexes, foreign key constraints, and performance tuning.",
+    streakDays: 2,
+    materials: [
+      {
+        id: "mat_102_1",
+        title: "Relational Database Normalization 1NF to 3NF.pdf",
+        size: "1.9 MB",
+        type: "pdf",
+        readTime: "20 min",
+        content:
+          "Database normalization reduces data redundancy and improves data integrity. First Normal Form (1NF) eliminates repeating groups, 2NF eliminates partial dependencies, and 3NF eliminates transitive dependencies.",
+      },
+    ],
+    worksheets: [
+      {
+        id: "ws_102_1",
+        title: "SQL JOIN Queries & Schema Diagram Exercise",
+        dueDate: "Jul 30, 2026",
+        status: "Not Started",
+      },
+    ],
+    quizzes: [
+      {
+        id: "quiz_102_1",
+        title: "SQL Select, Join & Indexing Quiz",
+        timeLimit: "15 mins",
+        questions: [
+          {
+            id: 1,
+            question:
+              "Which SQL clause is used to filter records based on aggregate functions?",
+            options: ["WHERE", "HAVING", "GROUP BY", "ORDER BY"],
+            correctAnswer: 1,
+          },
+          {
+            id: 2,
+            question:
+              "What type of key uniquely identifies a row in another table?",
+            options: [
+              "Primary Key",
+              "Foreign Key",
+              "Candidate Key",
+              "Composite Key",
+            ],
+            correctAnswer: 1,
+          },
+        ],
+      },
+    ],
+    announcements: [
+      {
+        id: "ann_102_1",
+        date: "Jul 20, 2026",
+        title: "PostgreSQL Database Schema Released",
+        content:
+          "Check the 7-table schema overview in your course materials before starting Worksheet 1.",
+      },
+    ],
+    discussions: [],
+    flashcards: [
+      {
+        front: "Primary Key constraint purpose?",
+        back: "Uniquely identifies each row in a database table.",
+      },
+      {
+        front: "What does ACID stand for in databases?",
+        back: "Atomicity, Consistency, Isolation, Durability",
+      },
+    ],
+  },
+  {
+    id: 103,
+    title: "General Physics: Mechanics & Energy",
+    subject: "Physics",
+    teacher: "Instructor Joshua",
+    description:
+      "Newtonian mechanics, kinetic and potential energy, impulse, momentum, and rotational motion.",
+    streakDays: 0,
+    materials: [
+      {
+        id: "mat_103_1",
+        title: "Newton's Laws of Motion & Force Vectors.pdf",
+        size: "5.2 MB",
+        type: "pdf",
+        readTime: "35 min",
+        content:
+          "Newton's First Law states an object remains at rest or in uniform motion unless acted upon by a net force. Second Law: F = ma. Third Law: Action and reaction forces are equal and opposite.",
+      },
+    ],
+    worksheets: [],
+    quizzes: [],
+    announcements: [
+      {
+        id: "ann_103_1",
+        date: "Jul 15, 2026",
+        title: "Midterm Physics Formula Sheet Available",
+        content:
+          "Make sure to download the formula PDF before entering offline study zones.",
+      },
+    ],
+    discussions: [],
+    flashcards: [
+      { front: "Formula for Kinetic Energy?", back: "KE = 1/2 * m * v^2" },
+      {
+        front: "Unit of Force in SI system?",
+        back: "Newton (N) = kg * m / s^2",
+      },
+    ],
+  },
+];
+
+export default function StudentPortal({
+  onLogout,
+  currentUser,
+  isOnlineSimulated = true,
+}) {
+  // Global State
+  const [courses, setCourses] = useState(INITIAL_COURSES);
+  const [activeCourseId, setActiveCourseId] = useState(null);
+  const [activeTab, setActiveTab] = useState("materials"); // 'materials' | 'assignments' | 'quizzes' | 'notices' | 'discussion'
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("All");
+
+  // Offline Persistence States (LocalStorage)
+  const [cachedCourseIds, setCachedCourseIds] = useState(() => {
+    const saved = localStorage.getItem("student_cached_courses");
+    return saved ? JSON.parse(saved) : [101]; // Seed Course 101 as cached
+  });
+
+  const [personalNotes, setPersonalNotes] = useState(() => {
+    const saved = localStorage.getItem("student_personal_notes");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [quizAttempts, setQuizAttempts] = useState(() => {
+    const saved = localStorage.getItem("student_quiz_attempts");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [discussionsState, setDiscussionsState] = useState(() => {
+    const saved = localStorage.getItem("student_discussions");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Modal Interactive State Engine
+  const [activeMaterial, setActiveMaterial] = useState(null); // Document Reader Modal
+  const [activeQuiz, setActiveQuiz] = useState(null); // Quiz Runner Modal
+  const [activeFlashcards, setActiveFlashcards] = useState(null); // Flashcard Modal
+
+  // Quiz Engine Active States
+  const [quizUserAnswers, setQuizUserAnswers] = useState({});
+  const [quizSubmittedResult, setQuizSubmittedResult] = useState(null);
+
+  // Flashcards Active States
+  const [cardIndex, setCardIndex] = useState(0);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+
+  // Comment Input State
+  const [newCommentText, setNewCommentText] = useState("");
+
+  // Local Storage Synchronization Hooks
+  useEffect(() => {
+    localStorage.setItem(
+      "student_cached_courses",
+      JSON.stringify(cachedCourseIds),
+    );
+  }, [cachedCourseIds]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "student_personal_notes",
+      JSON.stringify(personalNotes),
+    );
+  }, [personalNotes]);
+
+  useEffect(() => {
+    localStorage.setItem("student_quiz_attempts", JSON.stringify(quizAttempts));
+  }, [quizAttempts]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "student_discussions",
+      JSON.stringify(discussionsState),
+    );
+  }, [discussionsState]);
+
+  // Derived Values
+  const activeCourse = courses.find((c) => c.id === activeCourseId);
+  const subjects = ["All", ...new Set(courses.map((c) => c.subject))];
+  const pendingSyncCount =
+    quizAttempts.filter((a) => a.status === "pending_sync").length +
+    Object.values(discussionsState)
+      .flat()
+      .filter((d) => d.status === "pending_sync").length;
+
+  // Handler: Toggle Offline Course Pack Download
+  const handleToggleDownloadPack = (courseId, e) => {
+    e?.stopPropagation();
+    if (cachedCourseIds.includes(courseId)) {
+      setCachedCourseIds((prev) => prev.filter((id) => id !== courseId));
+    } else {
+      setCachedCourseIds((prev) => [...prev, courseId]);
+    }
+  };
+
+  // Handler: Save Personal Notes
+  const handleNoteChange = (noteKey, text) => {
+    setPersonalNotes((prev) => ({
+      ...prev,
+      [noteKey]: text,
+    }));
+  };
+
+  // Handler: Quiz Start & Submission
+  const handleStartQuiz = (quiz) => {
+    setActiveQuiz(quiz);
+    setQuizUserAnswers({});
+    setQuizSubmittedResult(null);
+  };
+
+  const handleSubmitQuiz = () => {
+    if (!activeQuiz) return;
+
+    let correctCount = 0;
+    activeQuiz.questions.forEach((q) => {
+      if (quizUserAnswers[q.id] === q.correctAnswer) {
+        correctCount += 1;
+      }
+    });
+
+    const scorePercentage = Math.round(
+      (correctCount / activeQuiz.questions.length) * 100,
+    );
+    const now = Date.now();
+    const currentDate = new Date(now).toLocaleDateString();
+
+    const attemptRecord = {
+      id: `attempt_${now}`,
+      quizId: activeQuiz.id,
+      quizTitle: activeQuiz.title,
+      courseId: activeCourse.id,
+      score: scorePercentage,
+      totalQuestions: activeQuiz.questions.length,
+      correctCount,
+      timestamp: currentDate,
+      status: isOnlineSimulated ? "synced" : "pending_sync",
+    };
+
+    setQuizAttempts((prev) => [attemptRecord, ...prev]);
+    setQuizSubmittedResult(attemptRecord);
+  };
+
+  // Handler: Add Discussion Question
+  const handlePostComment = (e) => {
+    e.preventDefault();
+    if (!newCommentText.trim() || !activeCourse) return;
+
+    const now = Date.now();
+    const currentDate = new Date(now).toLocaleDateString();
+
+    const newComment = {
+      id: `comment_${now}`,
+      author: currentUser?.username || "Student",
+      role: "Student",
+      date: currentDate,
+      text: newCommentText.trim(),
+      status: isOnlineSimulated ? "synced" : "pending_sync",
+      replies: [],
+    };
+
+    const courseDiscussions =
+      discussionsState[activeCourse.id] || activeCourse.discussions || [];
+    setDiscussionsState((prev) => ({
+      ...prev,
+      [activeCourse.id]: [newComment, ...courseDiscussions],
+    }));
+
+    setNewCommentText("");
+  };
+
+  // Filter Courses
+  const filteredCourses = courses.filter((c) => {
+    const matchesSearch =
+      c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.teacher.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSubject =
+      selectedSubject === "All" || c.subject === selectedSubject;
+    return matchesSearch && matchesSubject;
+  });
+
+  return (
+    <div className="space-y-8 animate-fadeIn text-slate-800">
+      {/* HEADER BAR: Student Identity & Status Indicator */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-md">
+              Student Workspace
+            </span>
+            <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+              <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+              <span>4-Day Study Streak</span>
+            </span>
+          </div>
+          <h1 className="text-2xl font-black text-slate-900 mt-2">
+            Welcome back, {currentUser?.username || "Student"}!
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Select a course master card to access offline study materials,
+            practice quizzes, and teacher Q&A.
+          </p>
+        </div>
+
+        {/* Dynamic Status Pill */}
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold transition ${
+              isOnlineSimulated
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-amber-50 text-amber-800 border-amber-200"
+            }`}
+          >
+            <button
+              onClick={onLogout}
+              className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
+            >
+              Logout
+            </button>
+            {isOnlineSimulated ? (
+              <Wifi className="h-4 w-4 text-emerald-600" />
+            ) : (
+              <WifiOff className="h-4 w-4 text-amber-600" />
+            )}
+            <div className="flex flex-col">
+              <span>
+                {isOnlineSimulated ? "Your are Online" : "You are Offline"}
+              </span>
+              {pendingSyncCount > 0 && (
+                <span className="text-[10px] font-medium text-amber-700">
+                  ⏳ {pendingSyncCount} item(s) pending sync in outbox
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* VIEW LEVEL 1: MASTER COURSE CARDS GRID */}
+      {!activeCourse ? (
+        <div className="space-y-6 mx-10 md:mx-40">
+          {/* Controls: Search & Subject Filters */}
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+            {/* Search Bar */}
+            <div className="relative flex-grow max-w-md">
+              <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search courses or teachers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+              />
+            </div>
+
+            {/* Subject Filters */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+              {subjects.map((subj) => (
+                <button
+                  key={subj}
+                  onClick={() => setSelectedSubject(subj)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    selectedSubject === subj
+                      ? "bg-indigo-600 text-white shadow-md"
+                      : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {subj}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Master Course Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCourses.map((course) => {
+              const isCached = cachedCourseIds.includes(course.id);
+              const materialsCount = course.materials.length;
+              const quizCount = course.quizzes.length;
+
+              return (
+                <div
+                  key={course.id}
+                  onClick={() => {
+                    setActiveCourseId(course.id);
+                    setActiveTab("materials");
+                  }}
+                  className="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between group space-y-5"
+                >
+                  <div className="space-y-3">
+                    {/* Top Row: Subject & Download Badge */}
+                    <div className="flex justify-between items-center">
+                      <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+                        {course.subject}
+                      </span>
+
+                      <button
+                        onClick={(e) => handleToggleDownloadPack(course.id, e)}
+                        title={
+                          isCached
+                            ? "Course Pack Downloaded (Click to remove)"
+                            : "Download Complete Course Pack for Offline Use"
+                        }
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-lg border transition ${
+                          isCached
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600"
+                        }`}
+                      >
+                        {isCached ? (
+                          <>
+                            <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>Cached</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-3.5 w-3.5" />
+                            <span>Download Pack</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Course Title & Teacher */}
+                    <div>
+                      <h3 className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition leading-snug">
+                        {course.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Instructor:{" "}
+                        <strong className="text-slate-700">
+                          {course.teacher}
+                        </strong>
+                      </p>
+                    </div>
+
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                      {course.description}
+                    </p>
+                  </div>
+
+                  {/* Card Footer Meta Info */}
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5 text-indigo-500" />
+                        {materialsCount} Materials
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Award className="h-3.5 w-3.5 text-emerald-500" />
+                        {quizCount} Quizzes
+                      </span>
+                    </div>
+
+                    <span className="text-indigo-600 font-bold group-hover:translate-x-1 transition flex items-center gap-1">
+                      Open Course &rarr;
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* VIEW LEVEL 2: DETAILED COURSE WORKSPACE (5 TABS) */
+        <div className="space-y-6 mx-10 md:mx-40">
+          {/* Workspace Back Bar */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setActiveCourseId(null)}
+              className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-indigo-600 transition bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to All Courses</span>
+            </button>
+
+            {/* Offline Flashcard Action */}
+            {activeCourse.flashcards && activeCourse.flashcards.length > 0 && (
+              <button
+                onClick={() => {
+                  setActiveFlashcards(activeCourse.flashcards);
+                  setCardIndex(0);
+                  setIsCardFlipped(false);
+                }}
+                className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
+              >
+                <Sparkles className="h-4 w-4 text-indigo-600" />
+                <span>
+                  Practice Offline Flashcards ({activeCourse.flashcards.length})
+                </span>
+              </button>
+            )}
+          </div>
+
+          {/* Active Course Master Banner */}
+          <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md space-y-3">
+            <div className="flex justify-between items-start">
+              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+                {activeCourse.subject}
+              </span>
+
+              <button
+                onClick={(e) => handleToggleDownloadPack(activeCourse.id, e)}
+                className={`flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-xl transition border ${
+                  cachedCourseIds.includes(activeCourse.id)
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                    : "bg-indigo-600 hover:bg-indigo-700 text-white border-transparent"
+                }`}
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>
+                  {cachedCourseIds.includes(activeCourse.id)
+                    ? "Course Pack Cached Offline"
+                    : "Download Complete Course Pack"}
+                </span>
+              </button>
+            </div>
+
+            <h2 className="text-2xl font-black">{activeCourse.title}</h2>
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+              {activeCourse.description}
+            </p>
+            <p className="text-xs text-indigo-300 font-semibold pt-1">
+              Instructor: {activeCourse.teacher}
+            </p>
+          </div>
+
+          {/* 5 Organized Workspace Tabs */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-2 shadow-sm flex items-center gap-1 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab("materials")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeTab === "materials"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <BookOpen className="h-4 w-4" />
+              <span>📖 Materials ({activeCourse.materials.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("assignments")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeTab === "assignments"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span>📝 Assignments ({activeCourse.worksheets.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("quizzes")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeTab === "quizzes"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <Award className="h-4 w-4" />
+              <span>🧪 Quizzes ({activeCourse.quizzes.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("notices")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeTab === "notices"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              <span>📢 Notices ({activeCourse.announcements.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("discussion")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeTab === "discussion"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>💬 Q&A Discussion</span>
+            </button>
+          </div>
+
+          {/* TAB 1: 📖 MATERIALS & PDF VIEWER */}
+          {activeTab === "materials" && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+              <h3 className="font-bold text-base text-slate-900">
+                Course Materials & Textbook Guides
+              </h3>
+              <p className="text-xs text-slate-500">
+                Click any guide to open the in-app document reader and take
+                private study notes offline.
+              </p>
+
+              <div className="divide-y divide-slate-100 border-t border-slate-100">
+                {activeCourse.materials.map((mat) => (
+                  <div
+                    key={mat.id}
+                    className="py-4 flex items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-indigo-600" />
+                        <h4 className="font-bold text-slate-800 text-sm">
+                          {mat.title}
+                        </h4>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Size: {mat.size} • Est. Read Time: {mat.readTime}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setActiveMaterial(mat)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5 shrink-0"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>Open Guide</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: 📝 ASSIGNMENTS & WORKSHEETS */}
+          {activeTab === "assignments" && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+              <h3 className="font-bold text-base text-slate-900">
+                Worksheets & Practice Problems
+              </h3>
+
+              {activeCourse.worksheets.length === 0 ? (
+                <p className="text-xs text-slate-500 italic py-4">
+                  No assignments published for this course yet.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {activeCourse.worksheets.map((ws) => (
+                    <div
+                      key={ws.id}
+                      className="p-4 border border-slate-200 rounded-xl flex items-center justify-between gap-4"
+                    >
+                      <div>
+                        <h4 className="font-bold text-slate-800 text-sm">
+                          {ws.title}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Due Date: {ws.dueDate}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`text-xs font-bold px-3 py-1 rounded-lg ${
+                          ws.status === "Completed"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        {ws.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: 🧪 QUIZZES & SELF-GRADING ENGINE */}
+          {activeTab === "quizzes" && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+              <h3 className="font-bold text-base text-slate-900">
+                Interactive Offline Evaluations
+              </h3>
+              <p className="text-xs text-slate-500">
+                Quizzes taken offline grade automatically on your device and
+                queue scores for sync when connected.
+              </p>
+
+              {activeCourse.quizzes.map((quiz) => {
+                const pastAttempt = quizAttempts.find(
+                  (a) => a.quizId === quiz.id,
+                );
+
+                return (
+                  <div
+                    key={quiz.id}
+                    className="p-5 border border-slate-200 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4"
+                  >
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-slate-900 text-sm">
+                        {quiz.title}
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        {quiz.questions.length} Questions • Time:{" "}
+                        {quiz.timeLimit}
+                      </p>
+
+                      {pastAttempt && (
+                        <div className="pt-1 flex items-center gap-2">
+                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                            Previous Score: {pastAttempt.score}%
+                          </span>
+                          {pastAttempt.status === "pending_sync" && (
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                              ⏳ Saved locally — Pending upload
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleStartQuiz(quiz)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2 self-start sm:self-auto"
+                    >
+                      <Play className="h-3.5 w-3.5 fill-white" />
+                      <span>
+                        {pastAttempt ? "Retake Quiz" : "Start Offline Quiz"}
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* TAB 4: 📢 NOTICES */}
+          {activeTab === "notices" && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+              <h3 className="font-bold text-base text-slate-900">
+                Instructor Announcements
+              </h3>
+
+              <div className="space-y-3">
+                {activeCourse.announcements.map((ann) => (
+                  <div
+                    key={ann.id}
+                    className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1"
+                  >
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-indigo-700">
+                        {ann.title}
+                      </span>
+                      <span className="text-slate-400">{ann.date}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {ann.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: 💬 Q&A DISCUSSION BOARD */}
+          {activeTab === "discussion" && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+              <h3 className="font-bold text-base text-slate-900">
+                Course Q&A Discussion Board
+              </h3>
+
+              {/* Comment Post Form */}
+              <form onSubmit={handlePostComment} className="space-y-3">
+                <textarea
+                  rows={3}
+                  placeholder="Ask Instructor Amina a question or comment on a topic..."
+                  value={newCommentText}
+                  onChange={(e) => setNewCommentText(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md flex items-center gap-2"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  <span>Post Question</span>
+                </button>
+              </form>
+
+              {/* Discussions Feed */}
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                {(
+                  discussionsState[activeCourse.id] ||
+                  activeCourse.discussions ||
+                  []
+                ).map((disc) => (
+                  <div
+                    key={disc.id}
+                    className="p-4 border border-slate-200 rounded-xl space-y-2"
+                  >
+                    <div className="flex justify-between items-center text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">
+                          {disc.author}
+                        </span>
+                        <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md">
+                          {disc.role}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400">{disc.date}</span>
+                        {disc.status === "pending_sync" && (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                            ⏳ Saved locally
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-700 leading-relaxed">
+                      {disc.text}
+                    </p>
+
+                    {/* Replies */}
+                    {disc.replies &&
+                      disc.replies.map((reply, idx) => (
+                        <div
+                          key={idx}
+                          className="mt-3 pl-4 border-l-2 border-indigo-500 space-y-1 bg-slate-50 p-2.5 rounded-r-xl"
+                        >
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="font-bold text-indigo-900">
+                              {reply.author} ({reply.role})
+                            </span>
+                            <span className="text-slate-400">{reply.date}</span>
+                          </div>
+                          <p className="text-xs text-slate-600">{reply.text}</p>
+                        </div>
+                      ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODAL 1: IN-APP DOCUMENT / PDF READER */}
+      {activeMaterial && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-indigo-400" />
+                <h3 className="font-bold text-sm">{activeMaterial.title}</h3>
+              </div>
+              <button
+                onClick={() => setActiveMaterial(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 flex-grow">
+              <div className="prose prose-slate text-xs leading-relaxed space-y-3">
+                <p className="font-semibold text-slate-700">
+                  {activeMaterial.content}
+                </p>
+              </div>
+
+              {/* Personal Notes Section */}
+              <div className="pt-4 border-t border-slate-200 space-y-2">
+                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Edit3 className="h-3.5 w-3.5 text-indigo-600" />
+                  My Personal Study Notes (Saved 100% Locally):
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Type private notes or key takeaways for this chapter..."
+                  value={
+                    personalNotes[`${activeCourse?.id}_${activeMaterial.id}`] ||
+                    ""
+                  }
+                  onChange={(e) =>
+                    handleNoteChange(
+                      `${activeCourse?.id}_${activeMaterial.id}`,
+                      e.target.value,
+                    )
+                  }
+                  className="w-full p-3 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: INTERACTIVE QUIZ ENGINE */}
+      {activeQuiz && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl p-6 space-y-6">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-bold text-indigo-600 uppercase">
+                  Self-Grading Quiz
+                </span>
+                <h3 className="text-lg font-black text-slate-900">
+                  {activeQuiz.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setActiveQuiz(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {!quizSubmittedResult ? (
+              <div className="space-y-6">
+                {activeQuiz.questions.map((q, idx) => (
+                  <div key={q.id} className="space-y-3">
+                    <p className="text-xs font-bold text-slate-800">
+                      {idx + 1}. {q.question}
+                    </p>
+                    <div className="space-y-2">
+                      {q.options.map((opt, optIdx) => (
+                        <label
+                          key={optIdx}
+                          className={`flex items-center gap-3 p-3 rounded-xl border text-xs cursor-pointer transition ${
+                            quizUserAnswers[q.id] === optIdx
+                              ? "bg-indigo-50 border-indigo-500 text-indigo-900 font-bold"
+                              : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`q_${q.id}`}
+                            checked={quizUserAnswers[q.id] === optIdx}
+                            onChange={() =>
+                              setQuizUserAnswers((prev) => ({
+                                ...prev,
+                                [q.id]: optIdx,
+                              }))
+                            }
+                            className="text-indigo-600"
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  onClick={handleSubmitQuiz}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition"
+                >
+                  Submit & Grade Quiz
+                </button>
+              </div>
+            ) : (
+              /* Quiz Score Result View */
+              <div className="text-center space-y-4 py-4">
+                <div className="h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                  <Award className="h-8 w-8" />
+                </div>
+                <h4 className="text-xl font-black text-slate-900">
+                  Quiz Completed!
+                </h4>
+                <div className="text-3xl font-black text-indigo-600">
+                  {quizSubmittedResult.score}%
+                </div>
+                <p className="text-xs text-slate-500">
+                  Correct Answers: {quizSubmittedResult.correctCount} /{" "}
+                  {quizSubmittedResult.totalQuestions}
+                </p>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-semibold">
+                  {quizSubmittedResult.status === "pending_sync"
+                    ? "⏳ Score saved in device memory. It will auto-sync when online."
+                    : "✓ Score synced with school server."}
+                </div>
+
+                <button
+                  onClick={() => setActiveQuiz(null)}
+                  className="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold text-xs shadow-md"
+                >
+                  Close & Return to Course
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: OFFLINE FLASHCARD DRILL */}
+      {activeFlashcards && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-6 text-center">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <span className="text-xs font-bold text-indigo-600">
+                Flashcard {cardIndex + 1} of {activeFlashcards.length}
+              </span>
+              <button
+                onClick={() => setActiveFlashcards(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Flip Card Area */}
+            <div
+              onClick={() => setIsCardFlipped(!isCardFlipped)}
+              className="h-48 bg-slate-900 text-white rounded-2xl p-6 flex flex-col justify-center items-center cursor-pointer shadow-lg transition transform hover:scale-[1.02]"
+            >
+              <span className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mb-2">
+                {isCardFlipped
+                  ? "ANSWER (CLICK TO FLIP)"
+                  : "QUESTION (CLICK TO FLIP)"}
+              </span>
+              <p className="text-base font-bold text-slate-100">
+                {isCardFlipped
+                  ? activeFlashcards[cardIndex].back
+                  : activeFlashcards[cardIndex].front}
+              </p>
+            </div>
+
+            {/* Navigation controls */}
+            <div className="flex justify-between items-center gap-4">
+              <button
+                disabled={cardIndex === 0}
+                onClick={() => {
+                  setCardIndex((prev) => prev - 1);
+                  setIsCardFlipped(false);
+                }}
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <button
+                disabled={cardIndex === activeFlashcards.length - 1}
+                onClick={() => {
+                  setCardIndex((prev) => prev + 1);
+                  setIsCardFlipped(false);
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold disabled:opacity-40"
+              >
+                Next Card
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
