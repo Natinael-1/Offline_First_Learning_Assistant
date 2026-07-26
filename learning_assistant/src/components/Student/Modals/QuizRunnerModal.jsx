@@ -23,8 +23,10 @@ import {
  * @param {Function} onClose - Callback function to close the modal overlay
  */
 export default function QuizRunnerModal({
+  activeCourse,
+  currentUser,
   activeQuiz,
-  activeCourseId,
+  //activeCourseId,
   isOnlineSimulated = true,
   onSaveAttempt,
   onClose,
@@ -98,6 +100,27 @@ export default function QuizRunnerModal({
       id: `attempt_${now}`,
       quizId: activeQuiz.id,
       quizTitle: activeQuiz.title,
+      courseId: activeCourse.id,
+      score: scorePercentage,
+      totalQuestions: activeQuiz.questions.length,
+      correctCount,
+      // These two are what TeacherGradebookTab, TeacherQuizBuilderTab's
+      // per-student dedupe, and the seeded demo record all expect. Without
+      // them, every real submission fell back to a hardcoded display name
+      // in the gradebook. currentUser can theoretically be null if this
+      // component ever rendered without an authenticated session, so this
+      // falls back to explicit "unknown" markers rather than crashing.
+      studentName: currentUser?.username || "Unknown Student",
+      studentEmail: currentUser?.email || "unknown@student.edu",
+      timestamp: currentDate,
+      status: isOnlineSimulated ? "synced" : "pending_sync",
+    };
+
+    {
+      /*const attemptRecord = {
+      id: `attempt_${now}`,
+      quizId: activeQuiz.id,
+      quizTitle: activeQuiz.title,
       courseId: activeCourseId,
       score: scorePercentage,
       totalQuestions,
@@ -105,7 +128,8 @@ export default function QuizRunnerModal({
       timestamp: currentDate,
       status: isOnlineSimulated ? "synced" : "pending_sync",
       breakdown: questionBreakdown,
-    };
+    };*/
+    }
 
     setSubmittedResult(attemptRecord);
     setShowConfirmSubmit(false);

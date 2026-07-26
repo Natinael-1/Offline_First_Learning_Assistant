@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Home from "./components/homepage";
 import StudentPortal from "./components/Student/StudentPortal";
-import TeacherPortal from "./components/TeacherPortal";
+import TeacherPortal from "./components/Teacher/TeacherPortal.jsx";
 import AdminPortal from "./components/AdminPortal";
 
 export default function App() {

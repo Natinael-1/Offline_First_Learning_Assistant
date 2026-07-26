@@ -827,6 +827,8 @@ export default function StudentPortal({
       {/* MODAL 2: INTERACTIVE QUIZ ENGINE */}
       {activeQuiz && (
         <QuizRunnerModal
+          activeCourse={activeCourse}
+          currentUser={currentUser}
           activeQuiz={activeQuiz}
           activeCourseId={activeCourse?.id}
           isOnlineSimulated={isOnlineSimulated}
