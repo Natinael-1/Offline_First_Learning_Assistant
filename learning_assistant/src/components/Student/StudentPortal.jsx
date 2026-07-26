@@ -4,6 +4,9 @@ import CourseAssignmentsTab from "./CourseAssignmentsTab.jsx";
 import CourseQuizzesTab from "./CourseQuizzesTab.jsx";
 import CourseNotices from "./CourseNoticesTab.jsx";
 import CourseDiscussionTab from "./CourseDiscussionTab.jsx";
+import DocumentReaderModal from "./Modals/DocumentReaderModal.jsx";
+import FlashcardModal from "./Modals/FlashcardModal.jsx";
+import QuizRunnerModal from "./Modals/QuizRunnerModal.jsx";
 /*
 Check,
 Bookmark,
@@ -11,6 +14,8 @@ Trash2,
 Layers,
 AlertCircle,
 HelpCircle
+Edit3,
+X
 */
 import {
   BookOpen,
@@ -23,8 +28,6 @@ import {
   Sparkles,
   ArrowLeft,
   Search,
-  X,
-  Edit3,
   Wifi,
   WifiOff,
   Award,
@@ -326,12 +329,12 @@ export default function StudentPortal({
   const [activeFlashcards, setActiveFlashcards] = useState(null); // Flashcard Modal
 
   // Quiz Engine Active States
-  const [quizUserAnswers, setQuizUserAnswers] = useState({});
-  const [quizSubmittedResult, setQuizSubmittedResult] = useState(null);
+  //const [quizUserAnswers, setQuizUserAnswers] = useState({});
+  //const [quizSubmittedResult, setQuizSubmittedResult] = useState(null);
 
   // Flashcards Active States
-  const [cardIndex, setCardIndex] = useState(0);
-  const [isCardFlipped, setIsCardFlipped] = useState(false);
+  //const [cardIndex, setCardIndex] = useState(0);
+  //const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   // Comment Input State
   const [newCommentText, setNewCommentText] = useState("");
@@ -392,11 +395,11 @@ export default function StudentPortal({
   // Handler: Quiz Start & Submission
   const handleStartQuiz = (quiz) => {
     setActiveQuiz(quiz);
-    setQuizUserAnswers({});
-    setQuizSubmittedResult(null);
+    //setQuizUserAnswers({});
+    //setQuizSubmittedResult(null);
   };
 
-  const handleSubmitQuiz = () => {
+  /*const handleSubmitQuiz = () => {
     if (!activeQuiz) return;
 
     let correctCount = 0;
@@ -426,7 +429,7 @@ export default function StudentPortal({
 
     setQuizAttempts((prev) => [attemptRecord, ...prev]);
     setQuizSubmittedResult(attemptRecord);
-  };
+  };*/
 
   // Handler: Add Discussion Question
   const handlePostComment = (e) => {
@@ -666,8 +669,6 @@ export default function StudentPortal({
               <button
                 onClick={() => {
                   setActiveFlashcards(activeCourse.flashcards);
-                  setCardIndex(0);
-                  setIsCardFlipped(false);
                 }}
                 className="flex ml-2 items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
               >
@@ -810,297 +811,39 @@ export default function StudentPortal({
               activeCourse={activeCourse}
             />
           )}
-          {/*<div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-              <h3 className="font-bold text-base text-slate-900">
-                Course Q&A Discussion Board
-              </h3>
-
-              {/* Comment Post Form *
-              <form onSubmit={handlePostComment} className="space-y-3">
-                <textarea
-                  rows={3}
-                  placeholder="Ask Instructor Amina a question or comment on a topic..."
-                  value={newCommentText}
-                  onChange={(e) => setNewCommentText(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md flex items-center gap-2"
-                >
-                  <Send className="h-3.5 w-3.5" />
-                  <span>Post Question</span>
-                </button>
-              </form>
-
-              {/* Discussions Feed *
-              <div className="space-y-4 pt-4 border-t border-slate-100">
-                {(
-                  discussionsState[activeCourse.id] ||
-                  activeCourse.discussions ||
-                  []
-                ).map((disc) => (
-                  <div
-                    key={disc.id}
-                    className="p-4 border border-slate-200 rounded-xl space-y-2"
-                  >
-                    <div className="flex justify-between items-center text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800">
-                          {disc.author}
-                        </span>
-                        <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md">
-                          {disc.role}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-400">{disc.date}</span>
-                        {disc.status === "pending_sync" && (
-                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                            ⏳ Saved locally
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-700 leading-relaxed">
-                      {disc.text}
-                    </p>
-
-                    {/* Replies *
-                    {disc.replies &&
-                      disc.replies.map((reply, idx) => (
-                        <div
-                          key={idx}
-                          className="mt-3 pl-4 border-l-2 border-indigo-500 space-y-1 bg-slate-50 p-2.5 rounded-r-xl"
-                        >
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="font-bold text-indigo-900">
-                              {reply.author} ({reply.role})
-                            </span>
-                            <span className="text-slate-400">{reply.date}</span>
-                          </div>
-                          <p className="text-xs text-slate-600">{reply.text}</p>
-                        </div>
-                      ))}
-                  </div>
-                ))}
-              </div>
-            </div>*/}
         </div>
       )}
 
       {/* MODAL 1: IN-APP DOCUMENT / PDF READER */}
       {activeMaterial && (
-        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-indigo-400" />
-                <h3 className="font-bold text-sm">{activeMaterial.title}</h3>
-              </div>
-              <button
-                onClick={() => setActiveMaterial(null)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto space-y-6 flex-grow">
-              <div className="prose prose-slate text-xs leading-relaxed space-y-3">
-                <p className="font-semibold text-slate-700">
-                  {activeMaterial.content}
-                </p>
-              </div>
-
-              {/* Personal Notes Section */}
-              <div className="pt-4 border-t border-slate-200 space-y-2">
-                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Edit3 className="h-3.5 w-3.5 text-indigo-600" />
-                  My Personal Study Notes (Saved 100% Locally):
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Type private notes or key takeaways for this chapter..."
-                  value={
-                    personalNotes[`${activeCourse?.id}_${activeMaterial.id}`] ||
-                    ""
-                  }
-                  onChange={(e) =>
-                    handleNoteChange(
-                      `${activeCourse?.id}_${activeMaterial.id}`,
-                      e.target.value,
-                    )
-                  }
-                  className="w-full p-3 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <DocumentReaderModal
+          activeMaterial={activeMaterial}
+          activeCourseId={activeCourse?.id}
+          personalNotes={personalNotes}
+          onNoteChange={handleNoteChange}
+          onClose={() => setActiveMaterial(null)}
+        />
       )}
-
       {/* MODAL 2: INTERACTIVE QUIZ ENGINE */}
       {activeQuiz && (
-        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl p-6 space-y-6">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <div>
-                <span className="text-[10px] font-bold text-indigo-600 uppercase">
-                  Self-Grading Quiz
-                </span>
-                <h3 className="text-lg font-black text-slate-900">
-                  {activeQuiz.title}
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveQuiz(null)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {!quizSubmittedResult ? (
-              <div className="space-y-6">
-                {activeQuiz.questions.map((q, idx) => (
-                  <div key={q.id} className="space-y-3">
-                    <p className="text-xs font-bold text-slate-800">
-                      {idx + 1}. {q.question}
-                    </p>
-                    <div className="space-y-2">
-                      {q.options.map((opt, optIdx) => (
-                        <label
-                          key={optIdx}
-                          className={`flex items-center gap-3 p-3 rounded-xl border text-xs cursor-pointer transition ${
-                            quizUserAnswers[q.id] === optIdx
-                              ? "bg-indigo-50 border-indigo-500 text-indigo-900 font-bold"
-                              : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={`q_${q.id}`}
-                            checked={quizUserAnswers[q.id] === optIdx}
-                            onChange={() =>
-                              setQuizUserAnswers((prev) => ({
-                                ...prev,
-                                [q.id]: optIdx,
-                              }))
-                            }
-                            className="text-indigo-600"
-                          />
-                          <span>{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-
-                <button
-                  onClick={handleSubmitQuiz}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition"
-                >
-                  Submit & Grade Quiz
-                </button>
-              </div>
-            ) : (
-              /* Quiz Score Result View */
-              <div className="text-center space-y-4 py-4">
-                <div className="h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                  <Award className="h-8 w-8" />
-                </div>
-                <h4 className="text-xl font-black text-slate-900">
-                  Quiz Completed!
-                </h4>
-                <div className="text-3xl font-black text-indigo-600">
-                  {quizSubmittedResult.score}%
-                </div>
-                <p className="text-xs text-slate-500">
-                  Correct Answers: {quizSubmittedResult.correctCount} /{" "}
-                  {quizSubmittedResult.totalQuestions}
-                </p>
-
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-semibold">
-                  {quizSubmittedResult.status === "pending_sync"
-                    ? "⏳ Score saved in device memory. It will auto-sync when online."
-                    : "✓ Score synced with school server."}
-                </div>
-
-                <button
-                  onClick={() => setActiveQuiz(null)}
-                  className="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold text-xs shadow-md"
-                >
-                  Close & Return to Course
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <QuizRunnerModal
+          activeQuiz={activeQuiz}
+          activeCourseId={activeCourse?.id}
+          isOnlineSimulated={isOnlineSimulated}
+          onSaveAttempt={(attempt) => {
+            setQuizAttempts((prev) => [attempt, ...prev]);
+          }}
+          onClose={() => setActiveQuiz(null)}
+        />
       )}
 
       {/* MODAL 3: OFFLINE FLASHCARD DRILL */}
       {activeFlashcards && (
-        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-6 text-center">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <span className="text-xs font-bold text-indigo-600">
-                Flashcard {cardIndex + 1} of {activeFlashcards.length}
-              </span>
-              <button
-                onClick={() => setActiveFlashcards(null)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Flip Card Area */}
-            <div
-              onClick={() => setIsCardFlipped(!isCardFlipped)}
-              className="h-48 bg-slate-900 text-white rounded-2xl p-6 flex flex-col justify-center items-center cursor-pointer shadow-lg transition transform hover:scale-[1.02]"
-            >
-              <span className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mb-2">
-                {isCardFlipped
-                  ? "ANSWER (CLICK TO FLIP)"
-                  : "QUESTION (CLICK TO FLIP)"}
-              </span>
-              <p className="text-base font-bold text-slate-100">
-                {isCardFlipped
-                  ? activeFlashcards[cardIndex].back
-                  : activeFlashcards[cardIndex].front}
-              </p>
-            </div>
-
-            {/* Navigation controls */}
-            <div className="flex justify-between items-center gap-4">
-              <button
-                disabled={cardIndex === 0}
-                onClick={() => {
-                  setCardIndex((prev) => prev - 1);
-                  setIsCardFlipped(false);
-                }}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold disabled:opacity-40"
-              >
-                Previous
-              </button>
-              <button
-                disabled={cardIndex === activeFlashcards.length - 1}
-                onClick={() => {
-                  setCardIndex((prev) => prev + 1);
-                  setIsCardFlipped(false);
-                }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold disabled:opacity-40"
-              >
-                Next Card
-              </button>
-            </div>
-          </div>
-        </div>
+        <FlashcardModal
+          flashcards={activeFlashcards}
+          onClose={() => setActiveFlashcards(null)}
+        />
       )}
-
       {/*<footer className="bg-slate-900 text-slate-400 border-t border-slate-800 w-full mt-auto">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6 text-xs">
           {/* Left Side: Copyright & Meta Info *
