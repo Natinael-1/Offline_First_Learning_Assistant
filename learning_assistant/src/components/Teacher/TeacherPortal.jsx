@@ -30,9 +30,9 @@ import TeacherAnnouncementsTab from "./TeacherAnnouncementsTab";
 import TeacherQAQueueTab from "./TeacherQAQueueTab";
 import TeacherGradebookTab from "./TeacherGradebookTab";
 
-import CreateCourseModal from "./modals/CreateCourseModal";
-import QuizCreatorModal from "./modals/QuizCreatorModal";
-import StudentScoreDetailsModal from "./modals/StudentScoreDetailsModal";
+import CreateCourseModal from "./Modals/CreateCourseModal";
+import QuizCreatorModal from "./Modals/QuizCreatorModal";
+import StudentScoreDetailsModal from "./Modals/StudentScoreDetailsModal";
 
 const INITIAL_TEACHER_COURSES = [
   {
@@ -457,7 +457,7 @@ export default function TeacherPortal({
     }
   };
 
-  const handleReplyQuestion = (courseId, discussionId, replyText) => {
+  /*const handleReplyQuestion = (courseId, discussionId, replyText) => {
     const newReply = {
       author: currentUser.username || "Instructor Amina",
       role: "Teacher",
@@ -488,17 +488,17 @@ export default function TeacherPortal({
       "Instructor response posted to discussion thread.",
       "success",
     );
-  };
+  };*/
 
   // Handler to save an instructor's reply to a student question
-  const handlePostQAReply = (courseId, questionId, replyText) => {
+  /*const handlePostQAReply = (courseId, questionId, replyText) => {
     setCourses((prevCourses) =>
       prevCourses.map((course) => {
         // 1. Find the target course
         if (course.id !== courseId) return course;
 
         // 2. Map through questions and append the reply to the matching question
-        const updatedQAPosts = (course.qaPosts || []).map((q) => {
+        const updatedQAPosts = (course.discussions || []).map((q) => {
           if (q.id !== questionId) return q;
 
           const newReply = {
@@ -521,6 +521,41 @@ export default function TeacherPortal({
           qaPosts: updatedQAPosts,
         };
       }),
+    );
+  };*/
+
+  const handlePostQAReply = (courseId, discussionId, replyText) => {
+    setCourses((prevCourses) =>
+      prevCourses.map((course) => {
+        if (course.id !== courseId) return course;
+
+        const newReply = {
+          author: currentUser.username || "Instructor Amina",
+          role: "Teacher",
+          date: new Date().toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          text: replyText,
+        };
+
+        return {
+          ...course,
+          discussions: course.discussions.map((d) =>
+            d.id === discussionId
+              ? { ...d, replies: [...(d.replies || []), newReply] }
+              : d,
+          ),
+        };
+      }),
+    );
+
+    triggerNotification(
+      isOnlineSimulated
+        ? "Instructor response posted to discussion thread."
+        : "Reply saved locally — will sync once reconnected.",
+      "success",
     );
   };
 
@@ -563,7 +598,7 @@ export default function TeacherPortal({
         </div>
 
         {/* Dynamic Sync Status Indicator */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
           <div
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border text-xs font-bold transition ${
               isOnlineSimulated
@@ -577,11 +612,7 @@ export default function TeacherPortal({
               <WifiOff className="h-4 w-4 text-amber-600" />
             )}
             <div className="flex flex-col">
-              <span>
-                {isOnlineSimulated
-                  ? "Connected to Class Gateway"
-                  : "Offline Mode (Drafts Saved Locally)"}
-              </span>
+              <span>{isOnlineSimulated ? "Online" : "Offline Mode"}</span>
               {teacherDrafts.length > 0 && (
                 <span className="text-[10px] font-medium text-amber-700">
                   ⏳ {teacherDrafts.length} draft item(s) pending publish
@@ -604,7 +635,7 @@ export default function TeacherPortal({
 
       {/* VIEW LEVEL 1: ALL COURSES GRID OR SELECTED COURSE WORKSPACE */}
       {!activeCourse ? (
-        <div className="space-y-6">
+        <div className="space-y-6 mx-10 md:mx-60">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-lg font-black text-slate-900">
@@ -634,11 +665,11 @@ export default function TeacherPortal({
           />
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 mx-10 md:mx-70">
           <div className="flex justify-between items-center">
             <button
               onClick={() => setActiveCourseId(null)}
-              className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-indigo-600 transition bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm"
+              className="flex mr-10 items-center gap-2 text-xs font-bold text-slate-600 hover:text-indigo-600 transition bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Back to All Courses</span>
@@ -767,8 +798,8 @@ export default function TeacherPortal({
             <TeacherQAQueueTab
               activeCourse={activeCourse}
               isOnlineSimulated={isOnlineSimulated}
-              onPostReply={(questionId, replyText) =>
-                handlePostQAReply(activeCourse.id, questionId, replyText)
+              onPostReply={(discussionId, replyText) =>
+                handlePostQAReply(activeCourse.id, discussionId, replyText)
               }
             />
           )}

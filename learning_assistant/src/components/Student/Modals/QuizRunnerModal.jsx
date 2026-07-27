@@ -71,6 +71,71 @@ export default function QuizRunnerModal({
 
   const handleGradeQuiz = () => {
     let correctCount = 0;
+    const breakdown = questions.map((q) => {
+      const selectedOption = userAnswers[q.id];
+      const isCorrect = selectedOption === q.correctAnswer;
+      if (isCorrect) correctCount += 1;
+
+      return {
+        questionId: q.id,
+        questionText: q.question,
+        options: q.options,
+        selectedOption,
+        correctAnswer: q.correctAnswer,
+        isCorrect,
+      };
+    });
+
+    const scorePercentage = Math.round((correctCount / totalQuestions) * 100);
+    const now = Date.now();
+    const currentDate = new Date(now).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    const attemptRecord = {
+      id: `attempt_${now}`,
+      quizId: activeQuiz.id,
+      quizTitle: activeQuiz.title,
+      courseId: activeCourse.id,
+      score: scorePercentage,
+      totalQuestions,
+      correctCount,
+      breakdown,
+      studentName: currentUser?.username || "Unknown Student",
+      studentEmail: currentUser?.email || "unknown@student.edu",
+      timestamp: currentDate,
+      status: isOnlineSimulated ? "synced" : "pending_sync",
+    };
+
+    setSubmittedResult(attemptRecord);
+    setShowConfirmSubmit(false);
+
+    // Dispatch completed score record to parent storage coordinator
+    if (typeof onSaveAttempt === "function") {
+      onSaveAttempt(attemptRecord);
+    }
+  };
+
+  /*const handleGradeQuiz = () => {
+    let correctCount = 0;
+    const breakdown = activeQuiz.questions.map((q) => {
+      const selectedOption = quizUserAnswers[q.id];
+      const isCorrect = selectedOption === q.correctAnswer;
+      if (isCorrect) correctCount += 1;
+
+      return {
+        questionId: q.id,
+        questionText: q.question,
+        options: q.options,
+        selectedOption,
+        correctAnswer: q.correctAnswer,
+        isCorrect,
+      };
+    });
+    {
+      /*let correctCount = 0;
     const questionBreakdown = [];
 
     questions.forEach((q) => {
@@ -87,6 +152,7 @@ export default function QuizRunnerModal({
         isCorrect,
       });
     });
+    
 
     const scorePercentage = Math.round((correctCount / totalQuestions) * 100);
     const now = Date.now();
@@ -104,12 +170,7 @@ export default function QuizRunnerModal({
       score: scorePercentage,
       totalQuestions: activeQuiz.questions.length,
       correctCount,
-      // These two are what TeacherGradebookTab, TeacherQuizBuilderTab's
-      // per-student dedupe, and the seeded demo record all expect. Without
-      // them, every real submission fell back to a hardcoded display name
-      // in the gradebook. currentUser can theoretically be null if this
-      // component ever rendered without an authenticated session, so this
-      // falls back to explicit "unknown" markers rather than crashing.
+      breakdown,
       studentName: currentUser?.username || "Unknown Student",
       studentEmail: currentUser?.email || "unknown@student.edu",
       timestamp: currentDate,
@@ -128,7 +189,7 @@ export default function QuizRunnerModal({
       timestamp: currentDate,
       status: isOnlineSimulated ? "synced" : "pending_sync",
       breakdown: questionBreakdown,
-    };*/
+    };
     }
 
     setSubmittedResult(attemptRecord);
@@ -138,7 +199,7 @@ export default function QuizRunnerModal({
     if (typeof onSaveAttempt === "function") {
       onSaveAttempt(attemptRecord);
     }
-  };
+  };*/
 
   const handleRetakeQuiz = () => {
     setSubmittedResult(null);
