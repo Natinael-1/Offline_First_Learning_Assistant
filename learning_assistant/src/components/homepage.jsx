@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+/*
+ArrowRight,
+
+*/
 import {
   BookOpen,
   Mail,
@@ -7,7 +12,6 @@ import {
   CheckCircle,
   AlertTriangle,
   Phone,
-  ArrowRight,
   Smartphone,
   Layers,
   User,
@@ -37,9 +41,10 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Registration Fields
+  // Registration Fields (Added registerPhone)
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerUsername, setRegisterUsername] = useState("");
+  const [registerPhone, setRegisterPhone] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
   const [resetPasswordEmail, setResetPasswordEmail] = useState("");
@@ -54,18 +59,21 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
             email: "admin@admin.edu",
             username: "SuperAdmin",
             password: "password123",
+            phone: "+250788000111",
             role: "admin",
           },
           {
             email: "amina@teacher.edu",
             username: "Instructor Amina",
             password: "password123",
+            phone: "+250788123456",
             role: "teacher",
           },
           {
             email: "natinael@student.edu",
             username: "Natinael Boda",
             password: "password123",
+            phone: "+250788555666",
             role: "student",
           },
         ];
@@ -154,14 +162,30 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
       return;
     }
 
+    // Phone Number Validation
+    const cleanPhone = registerPhone.trim();
+    if (!cleanPhone) {
+      triggerToast(
+        "Please enter a valid mobile phone number for SMS alerts.",
+        "error",
+      );
+      return;
+    }
+
     if (registerPassword !== registerConfirmPassword) {
       triggerToast("Passwords do not match. Please retype.", "error");
       return;
     }
 
+    // Automatically format phone to +250... if missing international prefix
+    const formattedPhone = cleanPhone.startsWith("+")
+      ? cleanPhone
+      : `+250${cleanPhone.replace(/^0+/, "")}`;
+
     const newUser = {
       email: emailLower,
-      username: registerUsername,
+      username: registerUsername.trim(),
+      phone: formattedPhone,
       password: registerPassword,
       role: detectedRole,
     };
@@ -170,12 +194,13 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
 
     setRegisterEmail("");
     setRegisterUsername("");
+    setRegisterPhone("");
     setRegisterPassword("");
     setRegisterConfirmPassword("");
 
     completeLogin(
       newUser,
-      `Account created successfully! Routed to ${detectedRole.toUpperCase()} page.`,
+      `Account created! Linked phone ${formattedPhone} for SMS alerts. Routed to ${detectedRole.toUpperCase()} page.`,
     );
   };
 
@@ -649,6 +674,30 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                   </div>
                 </div>
 
+                {/* Mobile Phone Field for SMS Alerts */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex justify-between items-center">
+                    <span>Mobile Phone Number</span>
+                    <span className="text-[10px] font-semibold text-purple-600">
+                      SMS Alerts
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-purple-600" />
+                    <input
+                      type="tel"
+                      placeholder=""
+                      value={registerPhone}
+                      onChange={(e) => setRegisterPhone(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:ring-1 focus:ring-purple-500"
+                      required
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Required for cellular notifications
+                  </p>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700">
                     Secure Password
@@ -689,7 +738,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                   type="submit"
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-sm"
                 >
-                  Register
+                  Register Account
                 </button>
               </form>
             )}
