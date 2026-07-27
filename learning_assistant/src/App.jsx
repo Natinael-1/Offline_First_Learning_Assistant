@@ -5,6 +5,7 @@ import Home from "./components/homepage";
 import StudentPortal from "./components/Student/StudentPortal";
 import TeacherPortal from "./components/Teacher/TeacherPortal.jsx";
 import AdminPortal from "./components/Admin/AdminPortal.jsx";
+import ReloadPrompt from "./components/ReloadPrompt.jsx";
 
 export default function App() {
   const [isOnline, setIsOnline] = useState(true);
@@ -45,6 +46,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ReloadPrompt />
       {toast && (
         <div className="fixed top-5 right-5 z-50 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg">
           {toast.message}

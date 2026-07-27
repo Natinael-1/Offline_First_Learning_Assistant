@@ -1,9 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-
-/*
-CheckCircle2,
-Sparkles,
-*/
 import {
   FileText,
   Plus,
@@ -15,90 +10,315 @@ import {
   Eye,
   Calendar,
   AlertCircle,
+  Paperclip,
+  Download,
+  X,
+  Loader2,
 } from "lucide-react";
 
 /**
  * TeacherContentPublisherTab Component
  *
- * Provides an interface for instructors to publish PDF reading guides,
- * reference materials, and practice worksheets for a selected course.
+ * Provides an interface for instructors to publish PDF/Word/text reading
+ * guides for a selected course. Real uploaded files are stored in the
+ * Cache Storage API (not localStorage) so they can hold real course
+ * materials well beyond localStorage's few-MB quota, and remain available
+ * offline via the app's existing service worker.
  *
  * @param {Object} activeCourse - Active course object containing materials & worksheets
  * @param {Function} onAddMaterial - Callback to attach a new material to the course
  */
+
+// Deliberately a separate cache from vite.config.js's Workbox
+// "course-materials-cache" (which only auto-caches real network fetches
+// matching *.pdf/png/jpg/jpeg/svg, and has maxEntries: 50 with LRU
+// eviction). Teacher uploads never go through a network fetch, and
+// sharing that cache would risk an upload being silently evicted once
+// entry count crosses 50. This cache has no expiration policy — it
+// persists until quota pressure or an explicit cache.delete().
+const MATERIALS_CACHE_NAME = "user-uploaded-materials";
+
+// Cache Storage quota is tied to the Storage API's overall per-origin
+// allocation (typically hundreds of MB+, depending on available disk) —
+// not localStorage's ~5-10MB shared ceiling. Still capped, not unlimited,
+// since low-end devices in low-connectivity contexts may be storage
+// constrained too.
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+const ACCEPTED_FILE_TYPES = ".pdf,.doc,.docx,.txt";
+
+const formatFileSize = (bytes) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+// Stores the real File/Blob in Cache Storage under a synthetic request URL
+// (it never needs to resolve to a real network resource — cache.put just
+// needs a Request-or-URL key). Returns that key so it can be saved as
+// lightweight metadata on the material object (which does go into
+// localStorage via course state) instead of the file bytes themselves.
+const cacheMaterialFile = async (materialId, file) => {
+  if (!("caches" in window)) {
+    throw new Error(
+      "This browser doesn't support offline file caching (Cache Storage API unavailable).",
+    );
+  }
+  const cache = await caches.open(MATERIALS_CACHE_NAME);
+  const cacheKey = `/materials/${materialId}`;
+  const response = new Response(file, {
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "X-File-Name": encodeURIComponent(file.name),
+    },
+  });
+  await cache.put(cacheKey, response);
+  return cacheKey;
+};
+
+// Retrieves a cached file as an object URL for preview/download. Caller
+// is responsible for URL.revokeObjectURL() when done with it.
+const getMaterialFileURL = async (cacheKey) => {
+  if (!cacheKey || !("caches" in window)) return null;
+  const cache = await caches.open(MATERIALS_CACHE_NAME);
+  const response = await cache.match(cacheKey);
+  if (!response) return null;
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+};
+
+function MaterialPreviewModal({ material, onClose }) {
+  const [fileURL, setFileURL] = useState(null);
+  const [status, setStatus] = useState("loading"); // 'loading' | 'ready' | 'missing' | 'error'
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectURL = null;
+
+    const load = async () => {
+      if (!material.fileCacheKey) {
+        setStatus("missing");
+        return;
+      }
+      try {
+        const url = await getMaterialFileURL(material.fileCacheKey);
+        if (cancelled) return;
+        if (!url) {
+          setStatus("missing");
+          return;
+        }
+        objectURL = url;
+        setFileURL(url);
+        setStatus("ready");
+      } catch {
+        if (!cancelled) setStatus("error");
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+      if (objectURL) URL.revokeObjectURL(objectURL);
+    };
+  }, [material.fileCacheKey]);
+
+  return (
+    <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 border border-slate-100 shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex justify-between items-center border-b border-slate-100 pb-3 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <FileCheck className="h-4 w-4 text-indigo-600 shrink-0" />
+            <h4 className="font-bold text-sm text-slate-900 truncate">
+              {material.title}
+            </h4>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-xs font-bold text-slate-400 hover:text-slate-600 shrink-0"
+          >
+            ✕ Close
+          </button>
+        </div>
+
+        {material.content && (
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 leading-relaxed shrink-0">
+            <p className="font-medium">{material.content}</p>
+          </div>
+        )}
+
+        <div className="flex-grow overflow-hidden rounded-2xl border border-slate-200">
+          {status === "loading" && (
+            <div className="h-full min-h-[240px] flex flex-col items-center justify-center gap-2 text-slate-400">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="text-xs">Loading cached file...</span>
+            </div>
+          )}
+
+          {status === "missing" && (
+            <div className="p-8 text-center text-xs text-slate-400">
+              No file attached to this material.
+            </div>
+          )}
+
+          {status === "error" && (
+            <div className="p-8 text-center text-xs text-rose-600">
+              Couldn't load this file from the offline cache.
+            </div>
+          )}
+
+          {status === "ready" &&
+            material.fileMimeType === "application/pdf" && (
+              <iframe
+                src={fileURL}
+                title={material.title}
+                className="w-full h-full min-h-[320px]"
+              />
+            )}
+
+          {status === "ready" &&
+            material.fileMimeType !== "application/pdf" && (
+              <div className="p-8 text-center space-y-3">
+                <FileText className="h-8 w-8 text-slate-300 mx-auto" />
+                <p className="text-xs text-slate-500">
+                  Inline preview isn't available for this file type.
+                </p>
+                <a>
+                  href={fileURL}
+                  download={material.fileName || material.title}
+                  className="inline-flex items-center gap-1.5 bg-indigo-600
+                  hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2
+                  rounded-xl transition"
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Download File</span>
+                </a>
+              </div>
+            )}
+        </div>
+
+        <div className="flex justify-end shrink-0">
+          <button
+            onClick={onClose}
+            className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl"
+          >
+            Done Preview
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TeacherContentPublisherTab({
   activeCourse,
   onAddMaterial,
 }) {
   const [materialTitle, setMaterialTitle] = useState("");
   const [readTime, setReadTime] = useState("15 min");
-  const [fileSize, setFileSize] = useState("2.5 MB");
   const [guideContent, setGuideContent] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(null);
 
   const publishTimerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  // Cancel any in-flight "publish" simulation if this tab unmounts
-  // (e.g. teacher navigates away before the 400ms delay finishes)
   useEffect(() => {
     return () => {
       if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
     };
   }, []);
 
-  const handlePublishSubmit = (e) => {
-    e.preventDefault();
-    if (!activeCourse || isPublishing) return;
-    if (!materialTitle.trim() || !guideContent.trim()) return;
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setFileError("");
 
-    setIsPublishing(true);
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
 
-    const trimmedTitle = materialTitle.trim();
-    const newMaterial = {
-      id: `mat_${activeCourse.id}_${Date.now()}`,
-      title: trimmedTitle.toLowerCase().endsWith(".pdf")
-        ? trimmedTitle
-        : `${trimmedTitle}.pdf`,
-      size: fileSize,
-      type: "pdf",
-      readTime,
-      content: guideContent.trim(),
-    };
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setFileError(
+        `"${file.name}" is ${formatFileSize(file.size)} — over the ${formatFileSize(
+          MAX_FILE_SIZE_BYTES,
+        )} limit for offline device caching.`,
+      );
+      e.target.value = "";
+      setSelectedFile(null);
+      return;
+    }
 
-    publishTimerRef.current = setTimeout(() => {
-      onAddMaterial(newMaterial);
-      setMaterialTitle("");
-      setGuideContent("");
-      setIsPublishing(false);
-      publishTimerRef.current = null;
-    }, 400);
+    setSelectedFile(file);
+    if (!materialTitle.trim()) {
+      setMaterialTitle(file.name.replace(/\.[^/.]+$/, ""));
+    }
   };
 
-  /*const handlePublishSubmit = (e) => {
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    setFileError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handlePublishSubmit = async (e) => {
     e.preventDefault();
-    if (!materialTitle.trim() || !guideContent.trim()) return;
+    if (!activeCourse || isPublishing) return;
+
+    if (!selectedFile) {
+      setFileError("Please choose a PDF, Word, or text file to publish.");
+      return;
+    }
+    if (!materialTitle.trim()) return;
 
     setIsPublishing(true);
+    setFileError("");
 
-    const newMaterial = {
-      id: `mat_${activeCourse.id}_${Date.now()}`,
-      title: materialTitle.trim().endsWith(".pdf")
-        ? materialTitle.trim()
-        : `${materialTitle.trim()}.pdf`,
-      size: fileSize,
-      type: "pdf",
-      readTime: readTime,
-      content: guideContent.trim(),
-    };
+    const materialId = `mat_${activeCourse.id}_${Date.now()}`;
 
-    setTimeout(() => {
-      onAddMaterial(newMaterial);
-      setMaterialTitle("");
-      setGuideContent("");
+    try {
+      // Do the real caching work first so any failure (unsupported
+      // browser, quota exceeded) surfaces immediately rather than after
+      // the simulated "publishing" delay below.
+      const cacheKey = await cacheMaterialFile(materialId, selectedFile);
+
+      const trimmedTitle = materialTitle.trim();
+      const extension =
+        selectedFile.name.slice(selectedFile.name.lastIndexOf(".")) || "";
+      const titleAlreadyHasExtension = /\.[a-zA-Z0-9]+$/.test(trimmedTitle);
+
+      const newMaterial = {
+        id: materialId,
+        title: titleAlreadyHasExtension
+          ? trimmedTitle
+          : `${trimmedTitle}${extension}`,
+        size: formatFileSize(selectedFile.size),
+        type: extension.replace(".", "").toLowerCase() || "file",
+        readTime,
+        content: guideContent.trim(),
+        fileName: selectedFile.name,
+        fileMimeType: selectedFile.type,
+        // Only the cache key is stored here (and persisted to
+        // localStorage via course state) — never the file bytes.
+        fileCacheKey: cacheKey,
+      };
+
+      publishTimerRef.current = setTimeout(() => {
+        onAddMaterial(newMaterial);
+        setMaterialTitle("");
+        setGuideContent("");
+        clearSelectedFile();
+        setIsPublishing(false);
+        publishTimerRef.current = null;
+      }, 400);
+    } catch (err) {
+      setFileError(
+        err?.message ||
+          "Couldn't cache that file for offline access — please try again.",
+      );
       setIsPublishing(false);
-    }, 400);
-  };*/
+    }
+  };
 
   const materialsList = activeCourse?.materials || [];
   const worksheetsList = activeCourse?.worksheets || [];
@@ -117,8 +337,8 @@ export default function TeacherContentPublisherTab({
                 Publish Course Guide or PDF Material
               </h3>
               <p className="text-xs text-slate-500">
-                Uploaded guides are compressed into study packages for zero-data
-                student caching.
+                Uploaded files are cached on-device via the service worker for
+                zero-data student access.
               </p>
             </div>
           </div>
@@ -128,18 +348,72 @@ export default function TeacherContentPublisherTab({
           </span>
         </div>
 
-        {}
         <form onSubmit={handlePublishSubmit} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <Paperclip className="h-3.5 w-3.5 text-indigo-600" />
+              Upload Document (PDF, Word, or Text):
+            </label>
+
+            {!selectedFile ? (
+              <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50 hover:bg-indigo-50/40 rounded-2xl py-6 cursor-pointer transition text-center">
+                <UploadCloud className="h-6 w-6 text-indigo-500" />
+                <span className="text-xs font-bold text-slate-700">
+                  Click to choose a file
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  PDF, DOC, DOCX, or TXT — up to{" "}
+                  {formatFileSize(MAX_FILE_SIZE_BYTES)}
+                </span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED_FILE_TYPES}
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+            ) : (
+              <div className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-800 truncate">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {formatFileSize(selectedFile.size)}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearSelectedFile}
+                  className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition shrink-0"
+                  title="Remove file"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {fileError && (
+              <div className="flex items-center gap-2 text-xs font-bold text-rose-700">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <span>{fileError}</span>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Document Title */}
             <div className="md:col-span-2 space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5 text-indigo-600" />
-                Material Title / Document Name:
+                Material Title / Display Name:
               </label>
               <input
                 type="text"
-                placeholder="e.g. Chapter 4: CSS Grid Responsive Patterns.pdf"
+                placeholder="e.g. Chapter 4: CSS Grid Responsive Patterns"
                 value={materialTitle}
                 onChange={(e) => setMaterialTitle(e.target.value)}
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition"
@@ -147,7 +421,6 @@ export default function TeacherContentPublisherTab({
               />
             </div>
 
-            {/* Estimated Reading Time */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-indigo-600" />
@@ -167,33 +440,32 @@ export default function TeacherContentPublisherTab({
             </div>
           </div>
 
-          {/* Guide Content Text Editor */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <BookOpen className="h-3.5 w-3.5 text-indigo-600" />
-                Guide Summary & Core Reading Text:
+                Optional Summary / Key Takeaways:
               </span>
               <span className="text-[10px] text-slate-400 font-normal">
-                Formatted as offline-accessible text
+                Shown to students before opening the file
               </span>
             </label>
             <textarea
-              rows={5}
-              placeholder="Paste or write the main study guide text, key takeaways, code examples, or concept definitions here..."
+              rows={4}
+              placeholder="Optional: a short summary or key takeaways students will see alongside the file..."
               value={guideContent}
               onChange={(e) => setGuideContent(e.target.value)}
               className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs leading-relaxed focus:ring-2 focus:ring-indigo-500 outline-none transition"
-              required
             />
           </div>
 
-          {}
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-2 text-[11px] text-slate-400">
               <HardDrive className="h-3.5 w-3.5 text-indigo-500" />
               <span>
-                Simulated Size: <strong>{fileSize}</strong>
+                {selectedFile
+                  ? `File size: ${formatFileSize(selectedFile.size)}`
+                  : "No file selected yet"}
               </span>
             </div>
 
@@ -215,7 +487,7 @@ export default function TeacherContentPublisherTab({
         </form>
       </div>
 
-      {}
+      {/* PUBLISHED MATERIALS LIST */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
         <div className="flex justify-between items-center">
           <div>
@@ -223,7 +495,7 @@ export default function TeacherContentPublisherTab({
               Published Course Materials ({materialsList.length})
             </h3>
             <p className="text-xs text-slate-500">
-              Guides currently cached and accessible in student dashboards.
+              Files currently cached and accessible in student dashboards.
             </p>
           </div>
 
@@ -239,7 +511,7 @@ export default function TeacherContentPublisherTab({
               No study materials published yet.
             </p>
             <p className="text-[11px] text-slate-400">
-              Fill out the form above to add your first reading guide.
+              Upload your first file above to get started.
             </p>
           </div>
         ) : (
@@ -276,7 +548,7 @@ export default function TeacherContentPublisherTab({
         )}
       </div>
 
-      {}
+      {/* WORKSHEETS */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
         <div className="flex justify-between items-center">
           <div>
@@ -324,39 +596,11 @@ export default function TeacherContentPublisherTab({
         )}
       </div>
 
-      {}
       {showPreviewModal && (
-        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 border border-slate-100 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <FileCheck className="h-4 w-4 text-indigo-600" />
-                <h4 className="font-bold text-sm text-slate-900 truncate">
-                  {showPreviewModal.title}
-                </h4>
-              </div>
-              <button
-                onClick={() => setShowPreviewModal(null)}
-                className="text-xs font-bold text-slate-400 hover:text-slate-600"
-              >
-                ✕ Close
-              </button>
-            </div>
-
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-60 overflow-y-auto">
-              <p className="font-medium">{showPreviewModal.content}</p>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowPreviewModal(null)}
-                className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl"
-              >
-                Done Preview
-              </button>
-            </div>
-          </div>
-        </div>
+        <MaterialPreviewModal
+          material={showPreviewModal}
+          onClose={() => setShowPreviewModal(null)}
+        />
       )}
     </div>
   );

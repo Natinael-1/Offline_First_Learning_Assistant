@@ -1,11 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-/*
-ArrowRight,
-
-*/
 import {
+  Download,
   BookOpen,
   Mail,
   Lock,
@@ -15,9 +11,10 @@ import {
   Smartphone,
   Layers,
   User,
+  RefreshCw,
 } from "lucide-react";
 
-// Example email addresses provided by the school
+// Pre-authorized domain registry
 const PRE_AUTHORIZED_EMAILS = {
   student: [
     "student1@student.edu",
@@ -28,6 +25,31 @@ const PRE_AUTHORIZED_EMAILS = {
   teacher: ["amina@teacher.edu", "joshua@teacher.edu", "kwame@teacher.edu"],
   admin: ["admin@admin.edu", "it_support@admin.edu"],
 };
+
+// Default seed accounts to ensure seamless testing
+const DEFAULT_SEED_USERS = [
+  {
+    email: "admin@admin.edu",
+    username: "SuperAdmin",
+    password: "password123",
+    phone: "+250788000111",
+    role: "admin",
+  },
+  {
+    email: "amina@teacher.edu",
+    username: "Instructor Amina",
+    password: "password123",
+    phone: "+250788123456",
+    role: "teacher",
+  },
+  {
+    email: "natinael@student.edu",
+    username: "Natinael Boda",
+    password: "password123",
+    phone: "+250788555666",
+    role: "student",
+  },
+];
 
 export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
   const navigate = useNavigate();
@@ -41,7 +63,11 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Registration Fields (Added registerPhone)
+  // PWA Installation State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [canInstall, setCanInstall] = useState(false);
+
+  // Registration Fields
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerUsername, setRegisterUsername] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
@@ -49,34 +75,34 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
   const [resetPasswordEmail, setResetPasswordEmail] = useState("");
 
-  // Database State - simulating persistent storage
   const [registeredUsers, setRegisteredUsers] = useState(() => {
-    const saved = localStorage.getItem("school_registered_users");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            email: "admin@admin.edu",
-            username: "SuperAdmin",
-            password: "password123",
-            phone: "+250788000111",
-            role: "admin",
-          },
-          {
-            email: "amina@teacher.edu",
-            username: "Instructor Amina",
-            password: "password123",
-            phone: "+250788123456",
-            role: "teacher",
-          },
-          {
-            email: "natinael@student.edu",
-            username: "Natinael Boda",
-            password: "password123",
-            phone: "+250788555666",
-            role: "student",
-          },
-        ];
+    try {
+      const saved = localStorage.getItem("school_registered_users");
+      if (!saved) return DEFAULT_SEED_USERS;
+
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed) || parsed.length === 0)
+        return DEFAULT_SEED_USERS;
+
+      // Merge defaults if missing from saved browser storage
+      const merged = [...parsed];
+      DEFAULT_SEED_USERS.forEach((defaultUser) => {
+        if (
+          !merged.some(
+            (u) => u.email.toLowerCase() === defaultUser.email.toLowerCase(),
+          )
+        ) {
+          merged.push(defaultUser);
+        }
+      });
+      return merged;
+    } catch (err) {
+      console.error(
+        "Failed to parse stored users, falling back to defaults:",
+        err,
+      );
+      return DEFAULT_SEED_USERS;
+    }
   });
 
   const persistUsers = (users) => {
@@ -107,13 +133,19 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    const emailLower = loginEmail.trim().toLowerCase();
+    const inputClean = loginEmail.trim().toLowerCase();
+    const passwordClean = loginPassword.trim();
 
-    const user = registeredUsers.find(
-      (u) =>
-        (u.email.toLowerCase() === emailLower || u.username === loginEmail) &&
-        u.password === loginPassword,
-    );
+    // Flexible credential match against email OR username (case-insensitive)
+    const user = registeredUsers.find((u) => {
+      const emailMatches =
+        u.email && u.email.toLowerCase().trim() === inputClean;
+      const usernameMatches =
+        u.username && u.username.toLowerCase().trim() === inputClean;
+      const passwordMatches = u.password && u.password.trim() === passwordClean;
+
+      return (emailMatches || usernameMatches) && passwordMatches;
+    });
 
     if (user) {
       setLoginEmail("");
@@ -124,10 +156,33 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
       );
     } else {
       triggerToast(
-        "Invalid credentials. Please verify your school email/username and password.",
+        "Invalid credentials. Use: admin@admin.edu, amina@teacher.edu, or natinael@student.edu with password: password123",
         "error",
       );
     }
+  };
+
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault(); // Prevent automatic browser pop-up
+      setDeferredPrompt(e); // Store event trigger
+      setCanInstall(true); // Reveal Install Button
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    return () =>
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt(); // Show native OS install dialog
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      console.log("User installed EduSync PWA");
+    }
+    setDeferredPrompt(null);
+    setCanInstall(false);
   };
 
   const handleRegister = (e) => {
@@ -186,7 +241,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
       email: emailLower,
       username: registerUsername.trim(),
       phone: formattedPhone,
-      password: registerPassword,
+      password: registerPassword.trim(),
       role: detectedRole,
     };
 
@@ -240,6 +295,12 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
 
     setShowAuthModal(false);
     setResetPasswordEmail("");
+  };
+
+  // Helper to force reset demo credentials if storage gets corrupted
+  const handleResetDemoAccounts = () => {
+    persistUsers(DEFAULT_SEED_USERS);
+    triggerToast("Demo accounts restored! Login using password123", "success");
   };
 
   return (
@@ -298,15 +359,27 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
             </button>
           </nav>
 
-          <button
-            onClick={() => {
-              setAuthMode("login");
-              setShowAuthModal(true);
-            }}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md transition"
-          >
-            Sign In / Register
-          </button>
+          <div className="flex items-center gap-3">
+            {canInstall && (
+              <button
+                onClick={handleInstallClick}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5"
+              >
+                <Download className="h-4 w-4" />
+                <span>Install App</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setAuthMode("login");
+                setShowAuthModal(true);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md transition"
+            >
+              Sign In / Register
+            </button>
+          </div>
         </div>
       </header>
 
@@ -421,37 +494,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                 mobile device memory.
               </p>
             </div>
-
-            <p className="text-slate-600 leading-relaxed">
-              By packaging curriculum modules into compressed JSON study guides,
-              students can download their work at school once and complete their
-              quizzes back home in their villages. The system preserves
-              localized database schemas in the browser to ensure data
-              integrity, synchronizing scores directly to the central PostgreSQL
-              cloud server using idempotent transaction verification.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm">
-                  Offline Caching Mechanics
-                </h4>
-                <p className="text-xs text-slate-500 mt-1">
-                  Uses standard browser Cache APIs and persistent Service
-                  Workers to load fully functional software applications
-                  offline.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm">
-                  Stateless JWT Authentication
-                </h4>
-                <p className="text-xs text-slate-500 mt-1">
-                  Verifies student identities securely without requiring
-                  real-time authentication server checks.
-                </p>
-              </div>
-            </div>
           </div>
         )}
 
@@ -464,12 +506,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
               Connect With Our IT Desk
             </h2>
 
-            <p className="text-slate-600 leading-relaxed">
-              If you have any issues logging in or registering your
-              school-issued email address, please contact your school's
-              technical department.
-            </p>
-
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-start gap-4">
               <Phone className="h-6 w-6 text-indigo-600 shrink-0 mt-0.5" />
               <div>
@@ -477,15 +513,8 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                   SMS Gateway Integration Desk
                 </h4>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  No active internet? No problem. Send any text message query
-                  starting with the keyword{" "}
-                  <strong className="text-slate-900">"SUPPORT"</strong> to our
-                  regional carrier number. Your ticket will be dispatched to our
-                  database via the Africa's Talking SMS API.
-                </p>
-                <div className="bg-slate-900 text-white rounded-lg px-3 py-1.5 mt-3 text-xs font-mono inline-block">
                   Support SMS Code: +250 788 123 456
-                </div>
+                </p>
               </div>
             </div>
           </div>
@@ -499,36 +528,11 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
               &copy; {new Date().getFullYear()} Offline-First Learning
               Assistant. All rights reserved.
             </p>
-            <p className="text-[10px] text-slate-500">
-              Educational resource portal verified under school-authorized
-              domains.
-            </p>
-          </div>
-
-          <div className="flex gap-4 text-[11px] text-white">
-            <button
-              onClick={() => setActiveTab("home")}
-              className="hover:text-indigo-400 transition"
-            >
-              Home
-            </button>
-            <button
-              onClick={() => setActiveTab("about")}
-              className="hover:text-indigo-400 transition"
-            >
-              Our Mission
-            </button>
-            <button
-              onClick={() => setActiveTab("contact")}
-              className="hover:text-indigo-400 transition"
-            >
-              Support Desk
-            </button>
           </div>
         </div>
       </footer>
 
-      {/* AUTHENTICATION MODAL */}
+      {}
       {showAuthModal && (
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-slate-100 space-y-6">
@@ -554,33 +558,68 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
               </button>
             </div>
 
-            {authMode === "register" && registerEmail && (
-              <div
-                className={`p-3 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
-                  getRoleFromEmail(registerEmail)
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                    : "bg-amber-50 border-amber-200 text-amber-800"
-                }`}
-              >
-                {getRoleFromEmail(registerEmail) ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span>
-                      Detected Domain:{" "}
-                      <strong className="uppercase">
-                        {getRoleFromEmail(registerEmail)}
-                      </strong>
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <span>
-                      Please enter a domain ending with @student.edu,
-                      @teacher.edu, or @admin.edu
-                    </span>
-                  </>
-                )}
+            {/* Demo Credentials Quick-Fill Box */}
+            {authMode === "login" && (
+              <div className="bg-indigo-50/80 border border-indigo-200 p-3 rounded-xl space-y-1 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="font-extrabold text-indigo-950">
+                    Quick Fill Demo Accounts (Password:{" "}
+                    <code className="font-mono text-indigo-700 bg-indigo-100 px-1 py-0.5 rounded">
+                      password123
+                    </code>
+                    ):
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleResetDemoAccounts}
+                    className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                    title="Reset accounts to default if credentials get blocked"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    <span>Reset</span>
+                  </button>
+                </div>
+                <div className="text-[11px] text-indigo-900 space-y-0.5 font-medium">
+                  <p>
+                    • Admin:{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail("admin@admin.edu");
+                        setLoginPassword("password123");
+                      }}
+                      className="underline font-bold hover:text-indigo-600"
+                    >
+                      admin@admin.edu
+                    </button>
+                  </p>
+                  <p>
+                    • Teacher:{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail("amina@teacher.edu");
+                        setLoginPassword("password123");
+                      }}
+                      className="underline font-bold hover:text-indigo-600"
+                    >
+                      amina@teacher.edu
+                    </button>
+                  </p>
+                  <p>
+                    • Student:{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail("natinael@student.edu");
+                        setLoginPassword("password123");
+                      }}
+                      className="underline font-bold hover:text-indigo-600"
+                    >
+                      natinael@student.edu
+                    </button>
+                  </p>
+                </div>
               </div>
             )}
 
@@ -594,7 +633,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="e.g., natinael@student.edu"
+                      placeholder="e.g., natinael@student.edu or Natinael Boda"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-1 focus:ring-indigo-500"
@@ -618,7 +657,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                       required
                     />
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end pt-1">
                     <button
                       type="button"
                       onClick={() => setAuthMode("forgot")}
@@ -686,7 +725,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-purple-600" />
                     <input
                       type="tel"
-                      placeholder=""
+                      placeholder="+250788000000"
                       value={registerPhone}
                       onChange={(e) => setRegisterPhone(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:ring-1 focus:ring-purple-500"
