@@ -25,6 +25,14 @@ import {
 // the filter pills and the actual filtering — keeps them in sync.
 const resolveSubject = (course) => course.subject || "General";
 
+const getTeacherDisplayName = (teacher) => {
+  if (!teacher) return "Instructor";
+  if (typeof teacher === "object") {
+    return teacher.username || teacher.email || "Instructor";
+  }
+  return String(teacher);
+};
+
 export default function TeacherCoursesTab({
   courses = [],
   onSelectCourse,
@@ -157,7 +165,7 @@ export default function TeacherCoursesTab({
                     <p className="text-xs text-slate-500 font-medium mt-0.5">
                       Instructor:{" "}
                       <strong className="text-slate-700">
-                        {course.teacher}
+                        {getTeacherDisplayName(course.teacher)}
                       </strong>
                     </p>
                   </div>

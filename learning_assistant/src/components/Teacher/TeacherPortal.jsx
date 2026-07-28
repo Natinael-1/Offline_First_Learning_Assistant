@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   Users,
   LogOut,
+  Trash2,
+  RefreshCw,
 } from "lucide-react";
 
 import TeacherCoursesTab from "./TeacherCoursesTab";
@@ -199,6 +201,7 @@ export default function TeacherPortal({
   const [isCreateCourseOpen, setIsCreateCourseOpen] = useState(false);
   const [isQuizCreatorOpen, setIsQuizCreatorOpen] = useState(false);
   const [selectedAttemptDetail, setSelectedAttemptDetail] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Status Notification Banner
   const [statusMessage, setStatusMessage] = useState(null);
@@ -355,8 +358,101 @@ export default function TeacherPortal({
   }, [isOnlineSimulated, teacherDrafts, currentUser.id, triggerNotification]);*/
 
   // 2. Background Sync Engine: Reconnection listener
-  const prevOnlineRef = useRef(isOnlineSimulated);
+  //const prevOnlineRef = useRef(isOnlineSimulated);
+  const handleFlushTeacherDrafts = useCallback(async () => {
+    if (teacherDrafts.length === 0) return;
+    setIsSyncing(true);
+
+    const teacherId = currentUser.id || 1;
+    let syncedCount = 0;
+    const remainingDrafts = [];
+
+    for (const draft of teacherDrafts) {
+      try {
+        if (draft.type === "CREATE_COURSE") {
+          await coursesAPI.createCourse(draft.payload, teacherId);
+          syncedCount++;
+        } else if (draft.type === "DELETE_COURSE") {
+          await coursesAPI.deleteCourse(draft.courseId);
+          syncedCount++;
+        } else if (draft.type === "ADD_MATERIAL") {
+          await coursesAPI.addMaterial(draft.courseId, draft.payload);
+          syncedCount++;
+        } else if (draft.type === "ADD_QUIZ") {
+          await quizzesAPI.createQuiz(draft.courseId, draft.payload);
+          syncedCount++;
+        } else if (draft.type === "ADD_ANNOUNCEMENT") {
+          await coursesAPI.postAnnouncement(
+            draft.courseId,
+            teacherId,
+            draft.payload,
+          );
+          syncedCount++;
+        } else if (draft.type === "ADD_DISCUSSION") {
+          await coursesAPI.postDiscussion(
+            draft.courseId,
+            teacherId,
+            draft.payload,
+          );
+          syncedCount++;
+        }
+      } catch (err) {
+        console.error("Failed to sync draft item:", draft, err);
+        // Keep failed draft in queue if network or server error occurs
+        remainingDrafts.push(draft);
+      }
+    }
+
+    setTeacherDrafts(remainingDrafts);
+    setIsSyncing(false);
+
+    if (syncedCount > 0) {
+      triggerNotification(
+        `Synced ${syncedCount} offline item(s) to server!`,
+        "success",
+      );
+      try {
+        const freshCourses = await coursesAPI.getAllCourses();
+        if (Array.isArray(freshCourses)) {
+          setCourses(freshCourses);
+        }
+      } catch (e) {
+        console.error("Could not refresh courses post-sync:", e);
+      }
+    } else if (remainingDrafts.length > 0) {
+      triggerNotification(
+        "Could not flush draft. Verify backend connectivity.",
+        "amber",
+      );
+    }
+  }, [teacherDrafts, currentUser.id, triggerNotification]);
+  // Trigger sync automatically whenever device is online and drafts exist
   useEffect(() => {
+    if (isOnlineSimulated && teacherDrafts.length > 0 && !isSyncing) {
+      const timer = setTimeout(() => {
+        handleFlushTeacherDrafts();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isOnlineSimulated,
+    teacherDrafts.length,
+    isSyncing,
+    handleFlushTeacherDrafts,
+  ]);
+  // Clear stuck drafts manually
+  const handleDiscardDrafts = () => {
+    if (
+      window.confirm(
+        "Are you sure you want to discard all unsynced pending drafts?",
+      )
+    ) {
+      setTeacherDrafts([]);
+      localStorage.removeItem("teacher_pending_drafts");
+      triggerNotification("Pending offline drafts discarded.", "amber");
+    }
+  };
+  /*useEffect(() => {
     const justReconnected = isOnlineSimulated && !prevOnlineRef.current;
     prevOnlineRef.current = isOnlineSimulated;
 
@@ -419,7 +515,7 @@ export default function TeacherPortal({
       }
     }
     flushTeacherDrafts();
-  }, [isOnlineSimulated, teacherDrafts, currentUser.id, triggerNotification]);
+  }, [isOnlineSimulated, teacherDrafts, currentUser.id, triggerNotification]);*/
 
   //Handle create course function
   const handleCreateCourse = async (newCourseData) => {
@@ -482,6 +578,21 @@ export default function TeacherPortal({
       triggerNotification("Saved locally (Offline Mode)", "amber");
     }
   };
+
+  // Trigger sync automatically whenever device is online and drafts exist
+  useEffect(() => {
+    if (isOnlineSimulated && teacherDrafts.length > 0 && !isSyncing) {
+      const timer = setTimeout(() => {
+        handleFlushTeacherDrafts();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isOnlineSimulated,
+    teacherDrafts.length,
+    isSyncing,
+    handleFlushTeacherDrafts,
+  ]);
 
   /*const handleCreateCourse = async (newCourseData) => {
     const teacherId = currentUser.id || 1;
@@ -1005,7 +1116,7 @@ export default function TeacherPortal({
             )}
             <div className="flex flex-col">
               <span>
-                {isOnlineSimulated ? "Online Gateway Active" : "Offline Mode"}
+                {isOnlineSimulated ? "You are Online" : "Offline Mode"}
               </span>
               {teacherDrafts.length > 0 && (
                 <span className="text-[10px] font-medium text-amber-700">
@@ -1014,6 +1125,29 @@ export default function TeacherPortal({
               )}
             </div>
           </div>
+          {/* Interactive Outbox Sync & Discard Actions */}
+          {teacherDrafts.length > 0 && (
+            <div className="flex items-center gap-1 ml-2 border-l border-amber-300 pl-2">
+              <button
+                onClick={handleFlushTeacherDrafts}
+                disabled={isSyncing || !isOnlineSimulated}
+                className="p-1 text-amber-800 hover:text-emerald-700 hover:bg-emerald-100 rounded-lg transition disabled:opacity-40"
+                title="Retry Sync Now"
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`}
+                />
+              </button>
+
+              <button
+                onClick={handleDiscardDrafts}
+                className="p-1 text-amber-800 hover:text-rose-700 hover:bg-rose-100 rounded-lg transition"
+                title="Discard Stuck Offline Drafts"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
 
           {onLogout && (
             <button
