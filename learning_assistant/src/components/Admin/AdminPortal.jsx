@@ -32,6 +32,7 @@ import AdminStorageHealthTab from "./AdminStorageHealthTab";
 
 import PreAuthorizeUserModal from "./Modals/PreAuthorizeUserModal";
 import SystemLogDetailsModal from "./Modals/SystemLogDetailsModal";
+import { adminAPI } from "../../services/api";
 
 const DEFAULT_PRE_AUTHORIZED_USERS = [
   {
@@ -110,7 +111,7 @@ const DEFAULT_PRE_AUTHORIZED_USERS = [
 
 const DEFAULT_REGISTERED_USERS = [
   {
-    id: "u_1",
+    id: 1,
     email: "admin@admin.edu",
     username: "SuperAdmin",
     role: "admin",
@@ -118,7 +119,7 @@ const DEFAULT_REGISTERED_USERS = [
     phone: "+250788000111",
   },
   {
-    id: "u_2",
+    id: 2,
     email: "amina@teacher.edu",
     username: "Instructor Amina",
     role: "teacher",
@@ -126,7 +127,7 @@ const DEFAULT_REGISTERED_USERS = [
     phone: "+250788123456",
   },
   {
-    id: "u_3",
+    id: 3,
     email: "joshua@teacher.edu",
     username: "Instructor Joshua",
     role: "teacher",
@@ -134,7 +135,7 @@ const DEFAULT_REGISTERED_USERS = [
     phone: "+250788234567",
   },
   {
-    id: "u_4",
+    id: 4,
     email: "natinael@student.edu",
     username: "Natinael Boda",
     role: "student",
@@ -142,7 +143,7 @@ const DEFAULT_REGISTERED_USERS = [
     phone: "+250788555666",
   },
   {
-    id: "u_5",
+    id: 5,
     email: "student1@student.edu",
     username: "Kebede Tadesse",
     role: "student",
@@ -231,6 +232,7 @@ export default function AdminPortal({
   isOnlineSimulated = true,
   onLogout,
 }) {
+  const [pendingTeacherApprovals, setPendingTeacherApprovals] = useState([]);
   // Active Tab View Navigation: 'dashboard' | 'users' | 'sms' | 'storage'
   const [activeTab, setActiveTab] = useState("dashboard");
 
@@ -293,6 +295,41 @@ export default function AdminPortal({
     );
   }, [auditLogs]);
 
+  // Fetch live pending teachers and pre-authorized list from backend
+  useEffect(() => {
+    async function fetchAdminData() {
+      if (!isOnlineSimulated) return;
+      try {
+        const [pending, preAuth] = await Promise.all([
+          adminAPI.getPendingTeachers(),
+          adminAPI.getPreauthorizedDirectory(),
+        ]);
+
+        if (Array.isArray(pending)) {
+          setRegisteredUsers((prev) => {
+            // Merge or update pending flags for teacher accounts
+            return prev.map((u) => {
+              const matchesPending = pending.some(
+                (p) => p.email.toLowerCase() === u.email.toLowerCase(),
+              );
+              return matchesPending ? { ...u, isApproved: false } : u;
+            });
+          });
+        }
+
+        if (Array.isArray(preAuth) && preAuth.length > 0) {
+          setPreAuthorizedUsers(preAuth);
+        }
+      } catch (err) {
+        console.warn(
+          "FastAPI unreachable, loading cached local admin state:",
+          err.message,
+        );
+      }
+    }
+    fetchAdminData();
+  }, [isOnlineSimulated]);
+
   // Helper trigger to display toast notifications
   const triggerNotification = (text, type = "success") => {
     setStatusMessage({ text, type });
@@ -325,7 +362,103 @@ export default function AdminPortal({
   };
 
   // 1. Approve Teacher Account (Grants course publishing privileges)
-  const handleApproveTeacher = (teacherEmail) => {
+  useEffect(() => {
+    async function fetchPending() {
+      try {
+        const data = await adminAPI.getPendingTeachers();
+        setPendingTeacherApprovals(data);
+      } catch (err) {
+        console.error("Failed to fetch pending teachers:", err);
+      }
+    }
+    fetchPending();
+  }, []);
+
+  // Now, your handleApproveTeacher can refresh this list
+  const handleApproveTeacher = async (teacherId) => {
+    try {
+      await adminAPI.approveTeacher(teacherId);
+      // Re-fetch the list to get fresh/correct IDs
+      const freshList = await adminAPI.getPendingTeachers();
+      setPendingTeacherApprovals(freshList);
+
+      triggerNotification(`Approved teacher ID ${teacherId}`, "success");
+    } catch (err) {
+      triggerNotification(`Error: ${err.message}`, "amber");
+    }
+  };
+
+  /*const handleApproveTeacher = async (teacherId) => {
+    // No need to find by email anymore! We have the exact ID from the backend
+    if (typeof teacherId === "string" && teacherId.includes("@")) {
+      console.error("CRITICAL ERROR: Email was passed as ID:", teacherId);
+      triggerNotification(
+        "Error: System error (ID is an email). Check your data source.",
+        "amber",
+      );
+      return; // STOP HERE
+    }
+    console.log("Approving teacher with ID:", teacherId);
+
+    if (isOnlineSimulated && teacherId) {
+      try {
+        await adminAPI.approveTeacher(teacherId); // Call with ID
+
+        // Update local state to reflect the change
+        setRegisteredUsers((prev) =>
+          prev.map((u) =>
+            u.id === teacherId ? { ...u, isApproved: true } : u,
+          ),
+        );
+
+        triggerNotification(`Approved teacher ID ${teacherId}`, "success");
+      } catch (err) {
+        triggerNotification(`Error: ${err.message}`, "amber");
+      }
+    }
+  };*/
+
+  /*const handleApproveTeacher = async (teacherEmail) => {
+    // Find teacher in state
+    const targetUser = registeredUsers.find(
+      (u) => u.email.toLowerCase() === teacherEmail.toLowerCase(),
+    );
+
+    //for check
+    console.log("Checking conditions - isOnlineSimulated:", isOnlineSimulated);
+    console.log("Checking conditions - targetUser ID:", targetUser?.id);
+    console.log("Full user object structure:", Object.keys(targetUser));
+
+    if (isOnlineSimulated && targetUser?.id) {
+      try {
+        // Execute real DB update in SQLite/PostgreSQL (sets is_approved = 1)
+        await adminAPI.approveTeacher(targetUser.id);
+        triggerNotification(
+          `Approved account for ${teacherEmail} in database!`,
+          "success",
+        );
+      } catch (err) {
+        triggerNotification(`Error approving account: ${err.message}`, "amber");
+        return;
+      }
+    }
+
+    // Local state update
+    setRegisteredUsers((prev) =>
+      prev.map((user) =>
+        user.email.toLowerCase() === teacherEmail.toLowerCase()
+          ? { ...user, isApproved: true }
+          : user,
+      ),
+    );
+
+    appendAuditLog(
+      "APPROVE_TEACHER",
+      teacherEmail,
+      `Granted publishing rights to ${teacherEmail}.`,
+    );
+  };/*
+  /*const handleApproveTeacher = (teacherEmail) => {
     setRegisteredUsers((prev) =>
       prev.map((user) => {
         if (user.email.toLowerCase() === teacherEmail.toLowerCase()) {
@@ -345,7 +478,7 @@ export default function AdminPortal({
       `Approved account for ${teacherEmail}. Teacher now has publishing rights.`,
       "success",
     );
-  };
+  };*/
 
   // 2. Reject / Delete Pending Teacher Registration
   const handleRejectTeacher = (teacherEmail) => {
@@ -473,9 +606,14 @@ export default function AdminPortal({
   const totalTeachers = registeredUsers.filter(
     (u) => u.role === "teacher",
   ).length;
-  const pendingTeacherApprovals = registeredUsers.filter(
-    (u) => u.role === "teacher" && !u.isApproved,
-  );
+  /*const pendingTeacherApprovals = registeredUsers.filter((u) => {
+    u.role === "teacher" && !u.isApproved;
+    const isPending = u.role === "teacher" && !u.isApproved;
+    if (isPending) {
+      console.log("Pending Teacher ID:", u.id, "Email:", u.email);
+    }
+    return isPending;
+  });*/
   const totalRegisteredAccounts = registeredUsers.length;
 
   return (

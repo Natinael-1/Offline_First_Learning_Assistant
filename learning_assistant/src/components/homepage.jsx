@@ -13,9 +13,10 @@ import {
   User,
   RefreshCw,
 } from "lucide-react";
+import { authAPI } from "../services/api";
 
 // Pre-authorized domain registry
-const PRE_AUTHORIZED_EMAILS = {
+/*const PRE_AUTHORIZED_EMAILS = {
   student: [
     "student1@student.edu",
     "student2@student.edu",
@@ -24,11 +25,12 @@ const PRE_AUTHORIZED_EMAILS = {
   ],
   teacher: ["amina@teacher.edu", "joshua@teacher.edu", "kwame@teacher.edu"],
   admin: ["admin@admin.edu", "it_support@admin.edu"],
-};
+};*/
 
-// Default seed accounts to ensure seamless testing
+// Default seed accounts to ensure seamless offline testing
 const DEFAULT_SEED_USERS = [
   {
+    id: 1,
     email: "admin@admin.edu",
     username: "SuperAdmin",
     password: "password123",
@@ -36,6 +38,7 @@ const DEFAULT_SEED_USERS = [
     role: "admin",
   },
   {
+    id: 2,
     email: "amina@teacher.edu",
     username: "Instructor Amina",
     password: "password123",
@@ -43,6 +46,7 @@ const DEFAULT_SEED_USERS = [
     role: "teacher",
   },
   {
+    id: 3,
     email: "natinael@student.edu",
     username: "Natinael Boda",
     password: "password123",
@@ -78,13 +82,44 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
   const [registeredUsers, setRegisteredUsers] = useState(() => {
     try {
       const saved = localStorage.getItem("school_registered_users");
+
+      // 1. Process local data: Force every ID to be a Number
+      let initialData = [];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // SANITIZATION: Force ID to be a Number
+          initialData = parsed.map((u) => ({ ...u, id: Number(u.id) }));
+        }
+      }
+
+      // 2. Merge defaults, also forcing their IDs to numbers
+      const merged = [...initialData];
+      DEFAULT_SEED_USERS.forEach((defaultUser) => {
+        if (
+          !merged.some(
+            (u) => u.email.toLowerCase() === defaultUser.email.toLowerCase(),
+          )
+        ) {
+          merged.push({ ...defaultUser, id: Number(defaultUser.id) });
+        }
+      });
+
+      return merged;
+    } catch (err) {
+      console.error("Failed to parse stored users:", err);
+      return DEFAULT_SEED_USERS.map((u) => ({ ...u, id: Number(u.id) }));
+    }
+  });
+  /*const [registeredUsers, setRegisteredUsers] = useState(() => {
+    try {
+      const saved = localStorage.getItem("school_registered_users");
       if (!saved) return DEFAULT_SEED_USERS;
 
       const parsed = JSON.parse(saved);
       if (!Array.isArray(parsed) || parsed.length === 0)
         return DEFAULT_SEED_USERS;
 
-      // Merge defaults if missing from saved browser storage
       const merged = [...parsed];
       DEFAULT_SEED_USERS.forEach((defaultUser) => {
         if (
@@ -103,7 +138,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
       );
       return DEFAULT_SEED_USERS;
     }
-  });
+  });*/
 
   const persistUsers = (users) => {
     setRegisteredUsers(users);
@@ -131,42 +166,57 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
     navigate(`/${user.role}`);
   };
 
-  const handleLogin = (e) => {
+  // UPDATED: Connected to Live Backend API with Offline Fallback
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const inputClean = loginEmail.trim().toLowerCase();
+    const inputClean = loginEmail.trim();
     const passwordClean = loginPassword.trim();
 
-    // Flexible credential match against email OR username (case-insensitive)
-    const user = registeredUsers.find((u) => {
-      const emailMatches =
-        u.email && u.email.toLowerCase().trim() === inputClean;
-      const usernameMatches =
-        u.username && u.username.toLowerCase().trim() === inputClean;
-      const passwordMatches = u.password && u.password.trim() === passwordClean;
-
-      return (emailMatches || usernameMatches) && passwordMatches;
-    });
-
-    if (user) {
+    try {
+      // 1. Attempt live authentication via FastAPI
+      const data = await authAPI.login(inputClean, passwordClean);
       setLoginEmail("");
       setLoginPassword("");
       completeLogin(
-        user,
-        `Welcome back, ${user.username}! Role: ${user.role.toUpperCase()}`,
+        data.user,
+        `Welcome back, ${data.user.username}! Role: ${data.user.role.toUpperCase()}`,
       );
-    } else {
-      triggerToast(
-        "Invalid credentials. Use: admin@admin.edu, amina@teacher.edu, or natinael@student.edu with password: password123",
-        "error",
-      );
+    } catch (error) {
+      // 2. Offline / Fallback Authentication against Local Storage
+      const user = registeredUsers.find((u) => {
+        const emailMatches =
+          u.email && u.email.toLowerCase().trim() === inputClean.toLowerCase();
+        const usernameMatches =
+          u.username &&
+          u.username.toLowerCase().trim() === inputClean.toLowerCase();
+        const passwordMatches =
+          u.password && u.password.trim() === passwordClean;
+
+        return (emailMatches || usernameMatches) && passwordMatches;
+      });
+
+      if (user) {
+        setLoginEmail("");
+        setLoginPassword("");
+        completeLogin(
+          user,
+          `Welcome back, ${user.username}! (Offline Cached Mode)`,
+        );
+      } else {
+        triggerToast(
+          error.message ||
+            "Invalid credentials. Please verify your login details.",
+          "error",
+        );
+      }
     }
   };
 
   useEffect(() => {
     const handleBeforeInstall = (e) => {
-      e.preventDefault(); // Prevent automatic browser pop-up
-      setDeferredPrompt(e); // Store event trigger
-      setCanInstall(true); // Reveal Install Button
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
@@ -176,7 +226,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
-    deferredPrompt.prompt(); // Show native OS install dialog
+    deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") {
       console.log("User installed EduSync PWA");
@@ -185,7 +235,8 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
     setCanInstall(false);
   };
 
-  const handleRegister = (e) => {
+  // UPDATED: Connected to Live Backend API for Pre-Authorized Registration
+  const handleRegister = async (e) => {
     e.preventDefault();
     const emailLower = registerEmail.trim().toLowerCase();
     const detectedRole = getRoleFromEmail(emailLower);
@@ -198,26 +249,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
       return;
     }
 
-    const isPreAuthorized =
-      PRE_AUTHORIZED_EMAILS[detectedRole].includes(emailLower);
-    if (!isPreAuthorized) {
-      triggerToast(
-        `Access Denied! ${emailLower} is not on the school's pre-authorized registry. Contact IT support.`,
-        "error",
-      );
-      return;
-    }
-
-    if (registeredUsers.some((u) => u.email.toLowerCase() === emailLower)) {
-      triggerToast(
-        "An account with this email is already registered. Please log in instead.",
-        "error",
-      );
-      setAuthMode("login");
-      return;
-    }
-
-    // Phone Number Validation
     const cleanPhone = registerPhone.trim();
     if (!cleanPhone) {
       triggerToast(
@@ -232,12 +263,12 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
       return;
     }
 
-    // Automatically format phone to +250... if missing international prefix
     const formattedPhone = cleanPhone.startsWith("+")
       ? cleanPhone
       : `+250${cleanPhone.replace(/^0+/, "")}`;
 
-    const newUser = {
+    const newUserPayload = {
+      id: Number(Date.now()),
       email: emailLower,
       username: registerUsername.trim(),
       phone: formattedPhone,
@@ -245,18 +276,33 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
       role: detectedRole,
     };
 
-    persistUsers([...registeredUsers, newUser]);
+    try {
+      // 1. Attempt live registration with FastAPI
+      const newDbUser = await authAPI.register(newUserPayload);
 
-    setRegisterEmail("");
-    setRegisterUsername("");
-    setRegisterPhone("");
-    setRegisterPassword("");
-    setRegisterConfirmPassword("");
+      // Cache user locally
+      persistUsers([
+        ...registeredUsers,
+        { ...newUserPayload, id: newDbUser.id },
+      ]);
 
-    completeLogin(
-      newUser,
-      `Account created! Linked phone ${formattedPhone} for SMS alerts. Routed to ${detectedRole.toUpperCase()} page.`,
-    );
+      setRegisterEmail("");
+      setRegisterUsername("");
+      setRegisterPhone("");
+      setRegisterPassword("");
+      setRegisterConfirmPassword("");
+
+      completeLogin(
+        newDbUser,
+        `Account registered successfully! Welcome ${newDbUser.username}.`,
+      );
+    } catch (error) {
+      triggerToast(
+        error.message ||
+          "Registration failed. Ensure email is pre-authorized by admin.",
+        "error",
+      );
+    }
   };
 
   const handleForgotPassword = (e) => {
@@ -267,20 +313,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
     if (!detectedRole) {
       triggerToast(
         "Please enter a valid school email ending in @student.edu, @teacher.edu, or @admin.edu",
-        "error",
-      );
-      return;
-    }
-
-    const isPreAuthorized =
-      PRE_AUTHORIZED_EMAILS[detectedRole].includes(emailLower);
-    const existingAccount = registeredUsers.find(
-      (u) => u.email.toLowerCase() === emailLower,
-    );
-
-    if (!isPreAuthorized && !existingAccount) {
-      triggerToast(
-        "This email is not listed in the pre-authorized school directory.",
         "error",
       );
       return;
@@ -297,7 +329,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
     setResetPasswordEmail("");
   };
 
-  // Helper to force reset demo credentials if storage gets corrupted
   const handleResetDemoAccounts = () => {
     persistUsers(DEFAULT_SEED_USERS);
     triggerToast("Demo accounts restored! Login using password123", "success");
@@ -532,7 +563,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
         </div>
       </footer>
 
-      {}
       {showAuthModal && (
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-slate-100 space-y-6">

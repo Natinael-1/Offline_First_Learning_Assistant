@@ -1,13 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-
-/*
- BookOpen,
-  AlertCircle,
-  Clock,
-  Sparkles,
-  Send,
-  RefreshCw,
-*/
 import {
   Plus,
   FileText,
@@ -33,6 +24,8 @@ import TeacherGradebookTab from "./TeacherGradebookTab";
 import CreateCourseModal from "./Modals/CreateCourseModal";
 import QuizCreatorModal from "./Modals/QuizCreatorModal";
 import StudentScoreDetailsModal from "./Modals/StudentScoreDetailsModal";
+
+import { coursesAPI, quizzesAPI } from "../../services/api";
 
 const INITIAL_TEACHER_COURSES = [
   {
@@ -158,6 +151,7 @@ const INITIAL_TEACHER_COURSES = [
 
 export default function TeacherPortal({
   currentUser = {
+    id: 1,
     username: "Instructor Amina",
     email: "amina@teacher.edu",
     role: "teacher",
@@ -181,13 +175,6 @@ export default function TeacherPortal({
   });
 
   // Cross-Portal Synced Submissions (Student Scores Ledger)
-  // TODO: this reads "student_quiz_attempts" once at mount, with no persistence
-  // back to storage and no listener for changes made in a StudentPortal tab.
-  // The seeded demo record also carries studentName/studentEmail fields that
-  // StudentPortal's real attempt records never set — so real submissions will
-  // show up in the gradebook with no student identity attached. This needs a
-  // shared data layer (or at least a `storage` event listener + a corrected
-  // attempt shape on the student side), not a local patch here.
   const [quizAttempts, setQuizAttempts] = useState(() => {
     const saved = localStorage.getItem("student_quiz_attempts");
     return saved
@@ -217,7 +204,6 @@ export default function TeacherPortal({
   const [statusMessage, setStatusMessage] = useState(null);
   const notificationTimerRef = useRef(null);
 
-  // Auto-Persistence Hooks
   useEffect(() => {
     localStorage.setItem("teacher_courses", JSON.stringify(courses));
   }, [courses]);
@@ -229,10 +215,6 @@ export default function TeacherPortal({
     );
   }, [teacherDrafts]);
 
-  // Stable across renders so effects that depend on it don't re-fire spuriously,
-  // and so a new call always clears any still-pending timer from a prior call
-  // (fixes the race where a fast second toast got wiped early by the first
-  // toast's timeout).
   const triggerNotification = useCallback((text, type = "success") => {
     if (notificationTimerRef.current) {
       clearTimeout(notificationTimerRef.current);
@@ -244,90 +226,266 @@ export default function TeacherPortal({
     }, 4000);
   }, []);
 
-  // Clear any pending timer on unmount
   useEffect(() => {
     return () => {
-      if (notificationTimerRef.current)
+      if (notificationTimerRef.current) {
         clearTimeout(notificationTimerRef.current);
+      }
     };
   }, []);
 
   const activeCourse = courses.find((c) => c.id === activeCourseId);
 
+  // 1. Fetch live courses from FastAPI backend when online
+  /*useEffect(() => {
+    async function loadLiveCourses() {
+      if (!isOnlineSimulated) return;
+      try {
+        const liveCourses = await coursesAPI.getAllCourses();
+        if (Array.isArray(liveCourses) && liveCourses.length > 0) {
+          const formatted = liveCourses.map((c) => ({
+            ...c,
+            teacher:
+              c.teacher?.username || currentUser.username || "Instructor",
+            enrolledStudents: c.enrollments?.length || 28,
+            materials: c.materials || [],
+            worksheets: c.worksheets || [],
+            quizzes: c.quizzes || [],
+            announcements: c.announcements || [],
+            discussions: c.discussions || [],
+          }));
+          setCourses(formatted);
+        }
+      } catch (err) {
+        console.warn(
+          "FastAPI unreachable, loading cached local courses:",
+          err.message,
+        );
+      }
+    }
+    loadLiveCourses();
+  }, [isOnlineSimulated, currentUser.username]);*/
+
+  // Robust Fetcher with Mapping Logic
+  useEffect(() => {
+    async function loadLiveCourses() {
+      // Only attempt fetch if we have an internet connection
+      if (!isOnlineSimulated) return;
+
+      try {
+        const liveCourses = await coursesAPI.getAllCourses();
+
+        if (Array.isArray(liveCourses)) {
+          const formatted = liveCourses.map((c) => ({
+            ...c,
+            // Provide defaults to prevent UI crashes
+            teacher:
+              c.teacher?.username || currentUser.username || "Instructor",
+            enrolledStudents: c.enrollments?.length || 0,
+            materials: c.materials || [],
+            worksheets: c.worksheets || [],
+            quizzes: c.quizzes || [],
+            announcements: c.announcements || [],
+            discussions: c.discussions || [],
+          }));
+          setCourses(formatted);
+        }
+      } catch (err) {
+        console.warn(
+          "FastAPI unreachable, using local storage cache:",
+          err.message,
+        );
+      }
+    }
+
+    loadLiveCourses();
+  }, [isOnlineSimulated, currentUser.username]);
+
+  // 2. Reconnection Sync Engine: Flush offline teacher drafts to FastAPI
   /*const prevOnlineRef = useRef(isOnlineSimulated);
 
   useEffect(() => {
     const justReconnected = isOnlineSimulated && !prevOnlineRef.current;
     prevOnlineRef.current = isOnlineSimulated;
 
-    if (justReconnected) {
-      setTeacherDrafts((currentDrafts) => {
-        if (currentDrafts.length > 0) {
-          triggerNotification(
-            `Online Gateway Active: Synced ${currentDrafts.length} pending draft(s) to cloud database.`,
-            "success",
-          );
+    if (!justReconnected || teacherDrafts.length === 0) return;
+
+    async function flushTeacherDrafts() {
+      const teacherId = currentUser.id || 1;
+      let syncedCount = 0;
+
+      for (const draft of teacherDrafts) {
+        try {
+          if (draft.type === "CREATE_COURSE") {
+            await coursesAPI.createCourse(draft.payload, teacherId);
+            syncedCount++;
+          } else if (draft.type === "ADD_MATERIAL") {
+            await coursesAPI.addMaterial(draft.courseId, draft.payload);
+            syncedCount++;
+          } else if (draft.type === "ADD_QUIZ") {
+            await quizzesAPI.createQuiz(draft.courseId, draft.payload);
+            syncedCount++;
+          } else if (draft.type === "ADD_ANNOUNCEMENT") {
+            await coursesAPI.postAnnouncement(
+              draft.courseId,
+              teacherId,
+              draft.payload,
+            );
+            syncedCount++;
+          }
+        } catch (err) {
+          console.error("Failed to sync draft item:", draft, err);
         }
-        return [];
-      });
+      }
+
+      if (syncedCount > 0) {
+        triggerNotification(
+          `Online Gateway Active: Synced ${syncedCount} pending draft(s) to cloud database.`,
+          "success",
+        );
+        setTeacherDrafts([]);
+        const freshCourses = await coursesAPI.getAllCourses().catch(() => null);
+        if (freshCourses) {
+          setCourses(freshCourses);
+        }
+      }
     }
-  }, [isOnlineSimulated, triggerNotification]);*/
 
+    flushTeacherDrafts();
+  }, [isOnlineSimulated, teacherDrafts, currentUser.id, triggerNotification]);*/
+
+  // 2. Background Sync Engine: Reconnection listener
   const prevOnlineRef = useRef(isOnlineSimulated);
-
   useEffect(() => {
     const justReconnected = isOnlineSimulated && !prevOnlineRef.current;
     prevOnlineRef.current = isOnlineSimulated;
-    if (!justReconnected) return;
-    setTeacherDrafts((currentDrafts) => {
-      if (currentDrafts.length === 0) return currentDrafts;
-      const announcementDrafts = currentDrafts.filter(
-        (d) => d.type === "ADD_ANNOUNCEMENT",
-      );
 
-      if (announcementDrafts.length > 0) {
-        setCourses((prevCourses) =>
-          prevCourses.map((course) => {
-            const draftsForCourse = announcementDrafts.filter(
-              (d) => d.courseId === course.id,
+    if (!justReconnected || teacherDrafts.length === 0) return;
+
+    async function flushTeacherDrafts() {
+      const teacherId = currentUser.id || 1;
+      let syncedCount = 0;
+
+      const remainingDrafts = [];
+
+      for (const draft of teacherDrafts) {
+        try {
+          if (draft.type === "CREATE_COURSE") {
+            await coursesAPI.createCourse(draft.payload, teacherId);
+            syncedCount++;
+          } else if (draft.type === "ADD_MATERIAL") {
+            await coursesAPI.addMaterial(draft.courseId, draft.payload);
+            syncedCount++;
+          } else if (draft.type === "ADD_QUIZ") {
+            await quizzesAPI.createQuiz(draft.courseId, draft.payload);
+            syncedCount++;
+          } else if (draft.type === "ADD_DISCUSSION") {
+            // You might need to add postDiscussion to your API service for this,
+            // or map it to a course announcement if that's your preferred flow
+            await coursesAPI.postDiscussion(
+              draft.courseId,
+              teacherId,
+              draft.payload,
             );
-            if (draftsForCourse.length === 0) return course;
-
-            const smsRequestedByNoticeId = new Map(
-              draftsForCourse.map((d) => [
-                d.payload.noticeId,
-                d.payload.smsRequested,
-              ]),
+            syncedCount++;
+          } else if (draft.type === "ADD_ANNOUNCEMENT") {
+            await coursesAPI.postAnnouncement(
+              draft.courseId,
+              teacherId,
+              draft.payload,
             );
-
-            return {
-              ...course,
-              announcements: course.announcements.map((ann) =>
-                smsRequestedByNoticeId.has(ann.id)
-                  ? {
-                      ...ann,
-                      status: "synced",
-                      sentViaSMS:
-                        ann.sentViaSMS || !!smsRequestedByNoticeId.get(ann.id),
-                    }
-                  : ann,
-              ),
-            };
-          }),
-        );
+            syncedCount++;
+          }
+        } catch (err) {
+          console.error("Failed to sync draft item:", draft, err);
+          remainingDrafts.push(draft);
+        }
       }
 
-      triggerNotification(
-        `Online Gateway Active: Synced ${currentDrafts.length} pending draft(s) to cloud database.`,
-        "success",
-      );
+      if (syncedCount > 0) {
+        triggerNotification(
+          `Synced ${syncedCount} offline drafts to server!`,
+          "success",
+        );
+        setTeacherDrafts(remainingDrafts);
+        localStorage.setItem(
+          "teacher_pending_drafts",
+          JSON.stringify(remainingDrafts),
+        );
 
-      return [];
-    });
-  }, [isOnlineSimulated, triggerNotification]);
+        // Refresh full state
+        const freshCourses = await coursesAPI.getAllCourses();
+        setCourses(freshCourses);
+      }
+    }
+    flushTeacherDrafts();
+  }, [isOnlineSimulated, teacherDrafts, currentUser.id, triggerNotification]);
 
-  const handleCreateCourse = (newCourseData) => {
-    const newCourse = {
+  //Handle create course function
+  const handleCreateCourse = async (newCourseData) => {
+    const teacherId = currentUser.id || 1;
+
+    // 1. Create the Robust Object (includes all fields required by your tabs)
+    const optimisticCourse = {
+      id: Date.now(), // Temporary ID for the UI
+      ...newCourseData,
+      teacher: currentUser.username || "Instructor Amina",
+      enrolledStudents: 0,
+      materials: [],
+      worksheets: [],
+      quizzes: [],
+      announcements: [],
+      discussions: [],
+    };
+
+    // 2. Update UI Optimistically (Immediate feedback)
+    setCourses((prev) => [optimisticCourse, ...prev]);
+    setIsCreateCourseOpen(false);
+
+    // 3. API Sync Logic
+    if (isOnlineSimulated) {
+      try {
+        const apiResult = await coursesAPI.createCourse(
+          {
+            title: newCourseData.title,
+            subject: newCourseData.subject,
+            description: newCourseData.description,
+          },
+          teacherId,
+        );
+
+        // 4. ID Swapping: Update the optimistic item with the REAL DB ID
+        setCourses((prev) =>
+          prev.map((c) =>
+            c.id === optimisticCourse.id
+              ? { ...optimisticCourse, id: apiResult.id }
+              : c,
+          ),
+        );
+
+        triggerNotification(`Course published successfully!`, "success");
+      } catch (err) {
+        console.error(`Error ocurred: ${err}`);
+        // Fallback: Save to drafts if API fails
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "CREATE_COURSE", payload: newCourseData },
+        ]);
+        triggerNotification("Course saved locally (Offline)", "amber");
+      }
+    } else {
+      // Offline mode
+      setTeacherDrafts((prev) => [
+        ...prev,
+        { type: "CREATE_COURSE", payload: newCourseData },
+      ]);
+      triggerNotification("Saved locally (Offline Mode)", "amber");
+    }
+  };
+
+  /*const handleCreateCourse = async (newCourseData) => {
+    const teacherId = currentUser.id || 1;
+    let createdCourse = {
       id: Date.now(),
       ...newCourseData,
       teacher: currentUser.username || "Instructor Amina",
@@ -339,28 +497,93 @@ export default function TeacherPortal({
       discussions: [],
     };
 
-    setCourses((prev) => [newCourse, ...prev]);
-
-    if (!isOnlineSimulated) {
+    if (isOnlineSimulated) {
+      try {
+        const apiResult = await coursesAPI.createCourse(
+          {
+            title: newCourseData.title,
+            subject: newCourseData.subject,
+            description: newCourseData.description,
+          },
+          teacherId,
+        );
+        createdCourse = { ...createdCourse, id: apiResult.id };
+        triggerNotification(
+          `New course "${createdCourse.title}" published to school database!`,
+          "success",
+        );
+      } catch (err) {
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "CREATE_COURSE", payload: createdCourse },
+        ]);
+        triggerNotification(
+          `Saved locally as draft (${err.message || "Offline"}).`,
+          "amber",
+        );
+      }
+    } else {
       setTeacherDrafts((prev) => [
         ...prev,
-        { type: "CREATE_COURSE", payload: newCourse },
+        { type: "CREATE_COURSE", payload: createdCourse },
       ]);
       triggerNotification(
         "Course saved locally as draft (Offline Mode).",
         "amber",
       );
-    } else {
-      triggerNotification(
-        `New course "${newCourse.title}" published to school catalog!`,
-        "success",
-      );
     }
 
+    setCourses((prev) => [createdCourse, ...prev]);
     setIsCreateCourseOpen(false);
+  };*/
+
+  const handleAddMaterial = async (courseId, material) => {
+    // 1. Optimistic Update (Immediate UI response)
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.id === courseId ? { ...c, materials: [material, ...c.materials] } : c,
+      ),
+    );
+
+    // 2. Prepare Payload (Strict Mapping for FastAPI)
+    const apiPayload = {
+      title: material.title,
+      file_type: material.type || "pdf",
+      size: material.size || "1 MB",
+      read_time: material.readTime || "15 min",
+      content: material.content,
+    };
+
+    // 3. API Sync Logic
+    if (isOnlineSimulated) {
+      try {
+        await coursesAPI.addMaterial(courseId, apiPayload);
+        triggerNotification(
+          `Material "${material.title}" synced to cloud!`,
+          "success",
+        );
+      } catch (err) {
+        console.error("Sync failed, queuing draft:", err);
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "ADD_MATERIAL", courseId, payload: material },
+        ]);
+        triggerNotification(
+          "Connection lost. Saved locally as draft.",
+          "amber",
+        );
+      }
+    } else {
+      // 4. Offline Logic
+      setTeacherDrafts((prev) => [
+        ...prev,
+        { type: "ADD_MATERIAL", courseId, payload: material },
+      ]);
+      triggerNotification("Saved locally (Offline Mode).", "amber");
+    }
   };
 
-  const handleAddMaterial = (courseId, material) => {
+  /*const handleAddMaterial = async (courseId, material) => {
     setCourses((prev) =>
       prev.map((c) => {
         if (c.id === courseId) {
@@ -370,19 +593,82 @@ export default function TeacherPortal({
       }),
     );
 
-    if (!isOnlineSimulated) {
+    if (isOnlineSimulated) {
+      try {
+        await coursesAPI.addMaterial(courseId, {
+          title: material.title,
+          file_type: material.type || "pdf",
+          size: material.size || "1 MB",
+          read_time: material.readTime || "15 min",
+          content: material.content,
+        });
+        triggerNotification(
+          `Material "${material.title}" attached and synced to cloud!`,
+          "success",
+        );
+      } catch (err) {
+        console.error(`Error occured: ${err}`);
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "ADD_MATERIAL", courseId, payload: material },
+        ]);
+        triggerNotification(`Material saved locally as draft.`, "amber");
+      }
+    } else {
       setTeacherDrafts((prev) => [
         ...prev,
         { type: "ADD_MATERIAL", courseId, payload: material },
       ]);
+      triggerNotification(`Material saved locally (Offline Mode).`, "amber");
     }
-    triggerNotification(
-      `Material "${material.title}" attached to course.`,
-      "success",
+  };*/
+  const handleSaveQuiz = async (courseId, newQuiz) => {
+    // 1. Optimistic Update (Immediate UI response)
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.id === courseId ? { ...c, quizzes: [newQuiz, ...c.quizzes] } : c,
+      ),
     );
+
+    // 2. Prepare Payload (Strict Mapping)
+    const apiPayload = {
+      title: newQuiz.title,
+      time_limit: newQuiz.timeLimit || "15 mins",
+      questions_json: newQuiz.questions, // Ensure this matches your FastAPI schema
+    };
+
+    // 3. API Sync Logic
+    if (isOnlineSimulated) {
+      try {
+        await quizzesAPI.createQuiz(courseId, apiPayload);
+        triggerNotification(
+          `Quiz "${newQuiz.title}" published to server!`,
+          "success",
+        );
+      } catch (err) {
+        console.error("Quiz sync failed:", err);
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "ADD_QUIZ", courseId, payload: newQuiz },
+        ]);
+        triggerNotification(
+          "Connection issue. Quiz saved locally as draft.",
+          "amber",
+        );
+      }
+    } else {
+      // 4. Offline Logic
+      setTeacherDrafts((prev) => [
+        ...prev,
+        { type: "ADD_QUIZ", courseId, payload: newQuiz },
+      ]);
+      triggerNotification("Quiz saved locally (Offline Mode).", "amber");
+    }
+
+    setIsQuizCreatorOpen(false);
   };
 
-  const handleSaveQuiz = (courseId, newQuiz) => {
+  /*const handleSaveQuiz = async (courseId, newQuiz) => {
     setCourses((prev) =>
       prev.map((c) => {
         if (c.id === courseId) {
@@ -392,72 +678,136 @@ export default function TeacherPortal({
       }),
     );
 
-    if (!isOnlineSimulated) {
+    if (isOnlineSimulated) {
+      try {
+        await quizzesAPI.createQuiz(courseId, {
+          title: newQuiz.title,
+          time_limit: newQuiz.timeLimit || "15 mins",
+          questions_json: newQuiz.questions,
+        });
+        triggerNotification(
+          `Quiz "${newQuiz.title}" published to server!`,
+          "success",
+        );
+      } catch (err) {
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "ADD_QUIZ", courseId, payload: newQuiz },
+        ]);
+        triggerNotification(`Quiz saved locally as draft.`, "amber");
+      }
+    } else {
       setTeacherDrafts((prev) => [
         ...prev,
         { type: "ADD_QUIZ", courseId, payload: newQuiz },
       ]);
+      triggerNotification(`Quiz saved locally (Offline Mode).`, "amber");
     }
-    triggerNotification(
-      `Quiz "${newQuiz.title}" created successfully!`,
-      "success",
-    );
+
     setIsQuizCreatorOpen(false);
-  };
-
-  /*const handlePostAnnouncement = (courseId, notice, sendSMS) => {
-    setCourses((prev) =>
-      prev.map((c) => {
-        if (c.id === courseId) {
-          return { ...c, announcements: [notice, ...c.announcements] };
-        }
-        return c;
-      }),
-    );
-
-    if (sendSMS) {
-      triggerNotification(
-        `Notice posted & queued for SMS carrier broadcast via Africa's Talking API.`,
-        "success",
-      );
-    } else {
-      triggerNotification(`Course notice posted successfully.`, "success");
-    }
   };*/
-  const handlePostAnnouncement = (courseId, notice, sendSMS) => {
+
+  const handlePostAnnouncement = async (courseId, notice, sendSMS) => {
+    const teacherId = currentUser.id || 1;
+
+    // 1. Optimistic Update (Immediate UI response)
     setCourses((prev) =>
-      prev.map((c) => {
-        if (c.id === courseId) {
-          return { ...c, announcements: [notice, ...c.announcements] };
-        }
-        return c;
-      }),
+      prev.map((c) =>
+        c.id === courseId
+          ? { ...c, announcements: [notice, ...c.announcements] }
+          : c,
+      ),
     );
-    if (!isOnlineSimulated) {
+
+    // 2. Prepare Payload (Strict mapping for your backend schema)
+    const apiPayload = {
+      title: notice.title,
+      content: notice.content,
+      sent_via_sms: sendSMS,
+    };
+
+    // 3. API Sync Logic
+    if (isOnlineSimulated) {
+      try {
+        await coursesAPI.postAnnouncement(courseId, teacherId, apiPayload);
+
+        // Better UX: Tell the teacher exactly what happened
+        const successMsg = sendSMS
+          ? `Notice posted & SMS broadcast dispatched via Africa's Talking API.`
+          : `Course notice posted successfully.`;
+        triggerNotification(successMsg, "success");
+      } catch (err) {
+        console.error("Announcement sync failed:", err);
+        // Fallback: Queue for background sync
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "ADD_ANNOUNCEMENT", courseId, payload: apiPayload },
+        ]);
+        triggerNotification(
+          "Connection issue. Notice saved locally as draft.",
+          "amber",
+        );
+      }
+    } else {
+      // 4. Offline Logic
       setTeacherDrafts((prev) => [
         ...prev,
-        {
-          type: "ADD_ANNOUNCEMENT",
-          courseId,
-          payload: {
-            noticeId: notice.id,
-            smsRequested: notice.smsRequested,
-          },
-        },
+        { type: "ADD_ANNOUNCEMENT", courseId, payload: apiPayload },
       ]);
-    }
-
-    if (sendSMS) {
-      triggerNotification(
-        `Notice posted & queued for SMS carrier broadcast via Africa's Talking API.`,
-        "success",
-      );
-    } else {
-      triggerNotification(`Course notice posted successfully.`, "success");
+      triggerNotification("Notice saved locally (Offline Mode).", "amber");
     }
   };
 
-  /*const handleReplyQuestion = (courseId, discussionId, replyText) => {
+  /*const handlePostAnnouncement = async (courseId, notice, sendSMS) => {
+    const teacherId = currentUser.id || 1;
+    setCourses((prev) =>
+      prev.map((c) => {
+        if (c.id === courseId) {
+          return { ...c, announcements: [notice, ...c.announcements] };
+        }
+        return c;
+      }),
+    );
+
+    const announcementPayload = {
+      title: notice.title,
+      content: notice.content,
+      sent_via_sms: sendSMS,
+    };
+
+    if (isOnlineSimulated) {
+      try {
+        await coursesAPI.postAnnouncement(
+          courseId,
+          teacherId,
+          announcementPayload,
+        );
+        triggerNotification(
+          sendSMS
+            ? `Notice posted & SMS broadcast dispatched via Africa's Talking API.`
+            : `Course notice posted successfully.`,
+          "success",
+        );
+      } catch (err) {
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "ADD_ANNOUNCEMENT", courseId, payload: announcementPayload },
+        ]);
+        triggerNotification(`Notice saved locally as draft.`, "amber");
+      }
+    } else {
+      setTeacherDrafts((prev) => [
+        ...prev,
+        { type: "ADD_ANNOUNCEMENT", courseId, payload: announcementPayload },
+      ]);
+      triggerNotification(`Notice saved locally (Offline Mode).`, "amber");
+    }
+  };*/
+
+  const handlePostQAReply = async (courseId, discussionId, replyText) => {
+    const userId = currentUser.id || 1;
+
+    // 1. Optimistic Update (Immediate UI response)
     const newReply = {
       author: currentUser.username || "Instructor Amina",
       role: "Teacher",
@@ -469,80 +819,12 @@ export default function TeacherPortal({
       text: replyText,
     };
 
-    setCourses((prev) =>
-      prev.map((c) => {
-        if (c.id === courseId) {
-          const updatedDiscussions = c.discussions.map((d) => {
-            if (d.id === discussionId) {
-              return { ...d, replies: [...(d.replies || []), newReply] };
-            }
-            return d;
-          });
-          return { ...c, discussions: updatedDiscussions };
-        }
-        return c;
-      }),
-    );
-
-    triggerNotification(
-      "Instructor response posted to discussion thread.",
-      "success",
-    );
-  };*/
-
-  // Handler to save an instructor's reply to a student question
-  /*const handlePostQAReply = (courseId, questionId, replyText) => {
-    setCourses((prevCourses) =>
-      prevCourses.map((course) => {
-        // 1. Find the target course
-        if (course.id !== courseId) return course;
-
-        // 2. Map through questions and append the reply to the matching question
-        const updatedQAPosts = (course.discussions || []).map((q) => {
-          if (q.id !== questionId) return q;
-
-          const newReply = {
-            id: `rep-${Date.now()}`,
-            author: "Instructor (You)",
-            text: replyText,
-            timestamp: isOnlineSimulated ? "Just now" : "Pending Sync",
-          };
-
-          return {
-            ...q,
-            isAnswered: true, // Mark question as answered
-            replies: [...(q.replies || []), newReply], // Add new reply to existing list
-          };
-        });
-
-        // 3. Return updated course object
-        return {
-          ...course,
-          qaPosts: updatedQAPosts,
-        };
-      }),
-    );
-  };*/
-
-  const handlePostQAReply = (courseId, discussionId, replyText) => {
     setCourses((prevCourses) =>
       prevCourses.map((course) => {
         if (course.id !== courseId) return course;
-
-        const newReply = {
-          author: currentUser.username || "Instructor Amina",
-          role: "Teacher",
-          date: new Date().toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          }),
-          text: replyText,
-        };
-
         return {
           ...course,
-          discussions: course.discussions.map((d) =>
+          discussions: (course.discussions || []).map((d) =>
             d.id === discussionId
               ? { ...d, replies: [...(d.replies || []), newReply] }
               : d,
@@ -551,13 +833,89 @@ export default function TeacherPortal({
       }),
     );
 
-    triggerNotification(
-      isOnlineSimulated
-        ? "Instructor response posted to discussion thread."
-        : "Reply saved locally — will sync once reconnected.",
-      "success",
-    );
+    // 2. Prepare Payload
+    const apiPayload = {
+      text: replyText,
+      parent_id: typeof discussionId === "number" ? discussionId : null,
+    };
+
+    // 3. API Sync Logic
+    if (isOnlineSimulated) {
+      try {
+        await coursesAPI.postDiscussion(courseId, userId, apiPayload);
+        triggerNotification(
+          "Instructor response published to live discussion board.",
+          "success",
+        );
+      } catch (err) {
+        console.error("Discussion sync failed, queuing draft:", err);
+        // Fallback: Queue for background sync
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "ADD_DISCUSSION", courseId, payload: apiPayload },
+        ]);
+        triggerNotification(
+          "Connection issue. Reply saved locally as draft.",
+          "amber",
+        );
+      }
+    } else {
+      // 4. Offline Logic
+      setTeacherDrafts((prev) => [
+        ...prev,
+        { type: "ADD_DISCUSSION", courseId, payload: apiPayload },
+      ]);
+      triggerNotification("Reply saved locally (Offline Mode).", "amber");
+    }
   };
+
+  /*const handlePostQAReply = async (courseId, discussionId, replyText) => {
+    const userId = currentUser.id || 1;
+    const newReply = {
+      author: currentUser.username || "Instructor Amina",
+      role: "Teacher",
+      date: new Date().toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      text: replyText,
+    };
+
+    setCourses((prevCourses) =>
+      prevCourses.map((course) => {
+        if (course.id !== courseId) return course;
+        return {
+          ...course,
+          discussions: (course.discussions || []).map((d) =>
+            d.id === discussionId
+              ? { ...d, replies: [...(d.replies || []), newReply] }
+              : d,
+          ),
+        };
+      }),
+    );
+
+    if (isOnlineSimulated) {
+      try {
+        await coursesAPI.postDiscussion(courseId, userId, {
+          text: replyText,
+          parent_id: typeof discussionId === "number" ? discussionId : null,
+        });
+        triggerNotification(
+          "Instructor response published to live discussion board.",
+          "success",
+        );
+      } catch (err) {
+        triggerNotification(
+          "Reply saved locally — will sync once reconnected.",
+          "amber",
+        );
+      }
+    } else {
+      triggerNotification("Reply saved locally (Offline Mode).", "amber");
+    }
+  };*/
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800 pb-12">
@@ -612,7 +970,9 @@ export default function TeacherPortal({
               <WifiOff className="h-4 w-4 text-amber-600" />
             )}
             <div className="flex flex-col">
-              <span>{isOnlineSimulated ? "Online" : "Offline Mode"}</span>
+              <span>
+                {isOnlineSimulated ? "Online Gateway Active" : "Offline Mode"}
+              </span>
               {teacherDrafts.length > 0 && (
                 <span className="text-[10px] font-medium text-amber-700">
                   ⏳ {teacherDrafts.length} draft item(s) pending publish
@@ -633,7 +993,6 @@ export default function TeacherPortal({
         </div>
       </div>
 
-      {/* VIEW LEVEL 1: ALL COURSES GRID OR SELECTED COURSE WORKSPACE */}
       {!activeCourse ? (
         <div className="space-y-6 mx-10 md:mx-60">
           <div className="flex justify-between items-center">
@@ -695,9 +1054,9 @@ export default function TeacherPortal({
                 {activeCourse.enrolledStudents || 28} Enrolled Students
               </span>
               <span>&bull;</span>
-              <span>{activeCourse.materials.length} Materials</span>
+              <span>{activeCourse.materials?.length || 0} Materials</span>
               <span>&bull;</span>
-              <span>{activeCourse.quizzes.length} Quizzes</span>
+              <span>{activeCourse.quizzes?.length || 0} Quizzes</span>
             </div>
           </div>
 
@@ -711,7 +1070,7 @@ export default function TeacherPortal({
               }`}
             >
               <FileText className="h-4 w-4" />
-              <span>📖 Publisher ({activeCourse.materials.length})</span>
+              <span>📖 Publisher ({activeCourse.materials?.length || 0})</span>
             </button>
 
             <button
@@ -723,7 +1082,7 @@ export default function TeacherPortal({
               }`}
             >
               <Award className="h-4 w-4" />
-              <span>🧪 Quiz Builder ({activeCourse.quizzes.length})</span>
+              <span>🧪 Quiz Builder ({activeCourse.quizzes?.length || 0})</span>
             </button>
 
             <button
@@ -736,7 +1095,7 @@ export default function TeacherPortal({
             >
               <Radio className="h-4 w-4" />
               <span>
-                📢 SMS Broadcasts ({activeCourse.announcements.length})
+                📢 SMS Broadcasts ({activeCourse.announcements?.length || 0})
               </span>
             </button>
 
@@ -749,7 +1108,7 @@ export default function TeacherPortal({
               }`}
             >
               <MessageSquare className="h-4 w-4" />
-              <span>💬 Q&A Feed ({activeCourse.discussions.length})</span>
+              <span>💬 Q&A Feed ({activeCourse.discussions?.length || 0})</span>
             </button>
 
             <button

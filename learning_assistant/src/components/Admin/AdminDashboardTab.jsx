@@ -183,7 +183,7 @@ export default function AdminDashboardTab({
 
                 <button
                   onClick={() =>
-                    onApproveTeacher && onApproveTeacher(teacher.email)
+                    onApproveTeacher && onApproveTeacher(teacher.id)
                   }
                   className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-xl transition inline-flex items-center gap-1.5 self-start sm:self-auto"
                 >

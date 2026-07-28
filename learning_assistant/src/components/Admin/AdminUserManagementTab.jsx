@@ -227,9 +227,9 @@ export default function AdminUserManagementTab({
             </div>
           ) : (
             <div className="space-y-4">
-              {pendingTeacherApprovals.map((teacher) => (
+              {pendingTeacherApprovals.map((teacher, index) => (
                 <div
-                  key={teacher.id}
+                  key={`${teacher.id || teacher.email}-${index}`}
                   className="bg-amber-50/50 border border-amber-200 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition hover:border-amber-300"
                 >
                   <div className="space-y-1">
@@ -268,9 +268,13 @@ export default function AdminUserManagementTab({
                     </button>
 
                     <button
-                      onClick={() =>
-                        onApproveTeacher && onApproveTeacher(teacher.email)
-                      }
+                      onClick={() => {
+                        // 1. Force a log of the ID being passed
+                        console.log("Sending to Portal:", teacher.id);
+
+                        // 2. Pass it directly
+                        onApproveTeacher(teacher.id);
+                      }}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 py-2 rounded-xl transition shadow-md flex items-center gap-1.5"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />
