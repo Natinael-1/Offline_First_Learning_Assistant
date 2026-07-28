@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Users, FileText, Award, Search, Plus, FolderPlus } from "lucide-react";
+import {
+  Users,
+  FileText,
+  Award,
+  Search,
+  Plus,
+  FolderPlus,
+  Trash2,
+} from "lucide-react";
 
 /**
  * TeacherCoursesTab Component
@@ -21,6 +29,7 @@ export default function TeacherCoursesTab({
   courses = [],
   onSelectCourse,
   onOpenCreateModal,
+  onDeleteCourse,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("All");
@@ -37,6 +46,18 @@ export default function TeacherCoursesTab({
       selectedSubject === "All" || resolveSubject(course) === selectedSubject;
     return matchesSearch && matchesSubject;
   });
+  const handleDeleteClick = (e, courseId, title) => {
+    e.stopPropagation(); // Prevent opening the course workspace when clicking delete
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+      )
+    ) {
+      if (typeof onDeleteCourse === "function") {
+        onDeleteCourse(courseId);
+      }
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -118,6 +139,15 @@ export default function TeacherCoursesTab({
                       <Users className="h-3.5 w-3.5 text-indigo-500" />
                       <span>{enrolledCount} Students</span>
                     </span>
+                    <button
+                      onClick={(e) =>
+                        handleDeleteClick(e, course.id, course.title)
+                      }
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                      title="Delete Course Module"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
 
                   <div>

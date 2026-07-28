@@ -916,6 +916,40 @@ export default function TeacherPortal({
       triggerNotification("Reply saved locally (Offline Mode).", "amber");
     }
   };*/
+  //Handles delete course
+  const handleDeleteCourse = async (courseId) => {
+    // Optimistic UI update
+    setCourses((prev) => prev.filter((c) => c.id !== courseId));
+    if (activeCourseId === courseId) {
+      setActiveCourseId(null);
+    }
+
+    if (isOnlineSimulated) {
+      try {
+        await coursesAPI.deleteCourse(courseId);
+        triggerNotification("Course deleted successfully!", "success");
+      } catch (err) {
+        console.err(`Error ocurred: ${err}`);
+        setTeacherDrafts((prev) => [
+          ...prev,
+          { type: "DELETE_COURSE", courseId },
+        ]);
+        triggerNotification(
+          "Course removal queued for sync (Offline)",
+          "amber",
+        );
+      }
+    } else {
+      setTeacherDrafts((prev) => [
+        ...prev,
+        { type: "DELETE_COURSE", courseId },
+      ]);
+      triggerNotification(
+        "Course removal queued for sync (Offline Mode)",
+        "amber",
+      );
+    }
+  };
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800 pb-12">
@@ -1016,6 +1050,7 @@ export default function TeacherPortal({
 
           <TeacherCoursesTab
             courses={courses}
+            onDeleteCourse={handleDeleteCourse}
             onSelectCourse={(id) => {
               setActiveCourseId(id);
               setActiveTab("publisher");
