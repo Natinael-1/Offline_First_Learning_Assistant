@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import CourseMaterialsTab from "./CourseMaterialsTab.jsx";
 import CourseAssignmentsTab from "./CourseAssignmentsTab.jsx";
 import CourseQuizzesTab from "./CourseQuizzesTab.jsx";
@@ -7,16 +7,7 @@ import CourseDiscussionTab from "./CourseDiscussionTab.jsx";
 import DocumentReaderModal from "./Modals/DocumentReaderModal.jsx";
 import FlashcardModal from "./Modals/FlashcardModal.jsx";
 import QuizRunnerModal from "./Modals/QuizRunnerModal.jsx";
-/*
-Check,
-Bookmark,
-Trash2,
-Layers,
-AlertCircle,
-HelpCircle
-Edit3,
-X
-*/
+
 import {
   BookOpen,
   Download,
@@ -32,6 +23,8 @@ import {
   WifiOff,
   Award,
 } from "lucide-react";
+//API end points
+import { coursesAPI, quizzesAPI } from "../../services/api";
 
 // Seed Initial Mock Courses Data (Matches PostgreSQL Schema)
 const INITIAL_COURSES = [
@@ -327,6 +320,8 @@ export default function StudentPortal({
   const [activeMaterial, setActiveMaterial] = useState(null); // Document Reader Modal
   const [activeQuiz, setActiveQuiz] = useState(null); // Quiz Runner Modal
   const [activeFlashcards, setActiveFlashcards] = useState(null); // Flashcard Modal
+  const [newCommentText, setNewCommentText] = useState("");
+  const prevOnlineRef = useRef(isOnlineSimulated);
 
   // Quiz Engine Active States
   //const [quizUserAnswers, setQuizUserAnswers] = useState({});
@@ -337,7 +332,6 @@ export default function StudentPortal({
   //const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   // Comment Input State
-  const [newCommentText, setNewCommentText] = useState("");
 
   // Local Storage Synchronization Hooks
   useEffect(() => {
@@ -354,7 +348,7 @@ export default function StudentPortal({
     );
   }, [personalNotes]);
 
-  useEffect(() => {
+  /*useEffect(() => {
     localStorage.setItem("student_quiz_attempts", JSON.stringify(quizAttempts));
   }, [quizAttempts]);
 
@@ -363,16 +357,16 @@ export default function StudentPortal({
       "student_discussions",
       JSON.stringify(discussionsState),
     );
-  }, [discussionsState]);
+  }, [discussionsState]);*/
 
   // Derived Values
-  const activeCourse = courses.find((c) => c.id === activeCourseId);
+  /*const activeCourse = courses.find((c) => c.id === activeCourseId);
   const subjects = ["All", ...new Set(courses.map((c) => c.subject))];
   const pendingSyncCount =
     quizAttempts.filter((a) => a.status === "pending_sync").length +
     Object.values(discussionsState)
       .flat()
-      .filter((d) => d.status === "pending_sync").length;
+      .filter((d) => d.status === "pending_sync").length;*/
 
   // Handler: Toggle Offline Course Pack Download
   const handleToggleDownloadPack = (courseId, e) => {
@@ -432,7 +426,56 @@ export default function StudentPortal({
   };*/
 
   // Handler: Add Discussion Question
-  const handlePostComment = (e) => {
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    if (!newCommentText.trim() || !activeCourse) return;
+
+    const now = Date.now();
+    const currentDate = new Date(now).toLocaleDateString();
+
+    // 1. The "Rich" Object (Used for your UI State)
+    // This maintains the structure your CourseDiscussionTab expects.
+    const newComment = {
+      id: `disc_${now}`,
+      author: currentUser?.username || "Student",
+      role: "Student",
+      date: currentDate,
+      text: newCommentText.trim(),
+      status: isOnlineSimulated ? "synced" : "pending_sync",
+      replies: [],
+    };
+
+    // 2. Update UI Optimistically
+    const courseDiscussions =
+      discussionsState[activeCourse.id] || activeCourse.discussions || [];
+    setDiscussionsState((prev) => ({
+      ...prev,
+      [activeCourse.id]: [newComment, ...courseDiscussions],
+    }));
+
+    // 3. The "Slim" Payload (Used for the API)
+    // Send ONLY what the backend needs (text).
+    const apiPayload = {
+      text: newCommentText.trim(),
+    };
+
+    // 4. API Sync Logic
+    if (isOnlineSimulated) {
+      try {
+        await coursesAPI.postDiscussion(
+          activeCourse.id,
+          currentUser.id,
+          apiPayload,
+        );
+      } catch (err) {
+        console.error("Discussion sync failed:", err);
+        // Optional: you could add logic to move this to 'pending_sync' state if it fails
+      }
+    }
+
+    setNewCommentText("");
+  };
+  /*const handlePostComment = (e) => {
     e.preventDefault();
     if (!newCommentText.trim() || !activeCourse) return;
 
@@ -457,17 +500,88 @@ export default function StudentPortal({
     }));
 
     setNewCommentText("");
-  };
+  };*/
 
   // Filter Courses
   const filteredCourses = courses.filter((c) => {
+    const matchesSearch = c.title
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesSubject =
+      selectedSubject === "All" || c.subject === selectedSubject;
+    return matchesSearch && matchesSubject;
+  });
+  /*const filteredCourses = courses.filter((c) => {
     const matchesSearch =
       c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.teacher.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSubject =
       selectedSubject === "All" || c.subject === selectedSubject;
     return matchesSearch && matchesSubject;
-  });
+  });*/
+
+  // 1. Fetch Courses on Load
+  useEffect(() => {
+    async function loadCourses() {
+      try {
+        const data = await coursesAPI.getAllCourses();
+        setCourses(data);
+        localStorage.setItem("student_cached_courses", JSON.stringify(data));
+      } catch (err) {
+        console.error(`Error ocurred: ${err}`);
+        console.warn("FastAPI unreachable, loading cached data.");
+        const cached = localStorage.getItem("student_cached_courses");
+        if (cached) setCourses(JSON.parse(cached));
+      }
+    }
+    loadCourses();
+  }, []);
+
+  // 2. Sync Engine: Flush attempts and discussions to server when reconnecting
+  useEffect(() => {
+    const justReconnected = isOnlineSimulated && !prevOnlineRef.current;
+    prevOnlineRef.current = isOnlineSimulated;
+
+    if (justReconnected) {
+      async function syncPending() {
+        const pendingQuiz = quizAttempts.filter(
+          (a) => a.status === "pending_sync",
+        );
+        if (pendingQuiz.length > 0) {
+          try {
+            await quizzesAPI.syncOfflineAttempts(currentUser.id, pendingQuiz);
+            setQuizAttempts((prev) =>
+              prev.map((a) => ({ ...a, status: "synced" })),
+            );
+          } catch (err) {
+            console.error("Sync failed:", err);
+          }
+        }
+      }
+      syncPending();
+    }
+  }, [isOnlineSimulated, quizAttempts, currentUser.id]);
+
+  // Sync Logic
+  useEffect(() => {
+    localStorage.setItem("student_quiz_attempts", JSON.stringify(quizAttempts));
+  }, [quizAttempts]);
+  useEffect(() => {
+    localStorage.setItem(
+      "student_discussions",
+      JSON.stringify(discussionsState),
+    );
+  }, [discussionsState]);
+
+  // Derived
+  const activeCourse = courses.find((c) => c.id === activeCourseId);
+  const subjects = [
+    "All",
+    ...new Set(courses.map((c) => c.subject || "General")),
+  ];
+  const pendingSyncCount = quizAttempts.filter(
+    (a) => a.status === "pending_sync",
+  ).length;
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
@@ -618,8 +732,14 @@ export default function StudentPortal({
                       </h3>
                       <p className="text-xs text-slate-500 font-medium mt-0.5">
                         Instructor:{" "}
-                        <strong className="text-slate-700">
+                        {/*<strong className="text-slate-700">
                           {course.teacher}
+                        </strong>*/}
+                        <strong className="text-slate-700">
+                          {/* Add a check: if it's an object, get the username, otherwise just show the value */}
+                          {typeof course.teacher === "object"
+                            ? course.teacher?.username
+                            : course.teacher}
                         </strong>
                       </p>
                     </div>
@@ -704,12 +824,23 @@ export default function StudentPortal({
               </button>
             </div>
 
-            <h2 className="text-2xl font-black">{activeCourse.title}</h2>
+            {/*<h2 className="text-2xl font-black">{activeCourse.title}</h2>
             <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
               {activeCourse.description}
             </p>
             <p className="text-xs text-indigo-300 font-semibold pt-1">
               Instructor: {activeCourse.teacher}
+            </p>*/}
+            <h2 className="text-2xl font-black">{activeCourse.title}</h2>
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+              {typeof activeCourse.description === "object"
+                ? JSON.stringify(activeCourse.description)
+                : activeCourse.description}
+            </p>
+            <p className="text-xs text-indigo-300 font-semibold pt-1">
+              {/* If teacher is an object, access .username; otherwise, display it as-is */}
+              Instructor:{" "}
+              {activeCourse.teacher?.username || activeCourse.teacher}
             </p>
           </div>
 
@@ -846,51 +977,6 @@ export default function StudentPortal({
           onClose={() => setActiveFlashcards(null)}
         />
       )}
-      {/*<footer className="bg-slate-900 text-slate-400 border-t border-slate-800 w-full mt-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6 text-xs">
-          {/* Left Side: Copyright & Meta Info *
-          <div className="text-center md:text-left space-y-1">
-            <p className="font-medium text-slate-300">
-              &copy; {new Date().getFullYear()} Offline-First Learning
-              Assistant. All rights reserved.
-            </p>
-            <p className="text-[10px] text-slate-500">
-              Educational resource portal verified under school-authorized
-              domains.
-            </p>
-          </div>
-
-          {/* Right Side: Responsive Links & Live Sync System Status *
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-[11px]">
-            <div className="flex gap-4">
-              <button
-                onClick={() => setActiveTab("about")}
-                className="hover:text-indigo-400 transition"
-              >
-                Our Mission
-              </button>
-              <button
-                onClick={() => setActiveTab("contact")}
-                className="hover:text-indigo-400 transition"
-              >
-                Support Desk
-              </button>
-            </div>
-
-            {/* Small design divider visible only on larger devices *
-            <span className="hidden sm:inline text-slate-700">|</span>
-
-            {/* Operational Sync Status Pill *
-            <div className="flex items-center gap-2 text-slate-500">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-              </span>
-              <span>Gateway Standby</span>
-            </div>
-          </div>
-        </div>
-      </footer>*/}
     </div>
   );
 }
