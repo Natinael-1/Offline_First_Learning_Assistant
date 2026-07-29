@@ -1,3 +1,4 @@
+import json
 import datetime
 import enum
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum, JSON
@@ -82,6 +83,19 @@ class Quiz(Base):
     title = Column(String, nullable=False)
     time_limit = Column(String)
     questions_json = Column(JSON)  # Stores question text, options, and correct index keys
+    # COMPUTED PROPERTY: Parses questions_json into a Python list
+    @property
+    def questions(self):
+        # Use getattr() to safely extract the string value at runtime
+        raw_json = getattr(self, "questions_json", None)
+        
+        if raw_json and isinstance(raw_json, str):
+            try:
+                return json.loads(raw_json)
+            except Exception:
+                return []
+                
+        return []
 
     course = relationship("Course", back_populates="quizzes")
     attempts = relationship("QuizAttempt", back_populates="quiz", cascade="all, delete-orphan")

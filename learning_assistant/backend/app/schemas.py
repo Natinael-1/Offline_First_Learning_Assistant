@@ -123,6 +123,8 @@ class QuizCreate(QuizBase):
 class QuizResponse(QuizBase):
     id: int
     course_id: int
+    # 💡 ADD THIS: Exposes the parsed questions list to React
+    questions: List[Any] = []
 
     class Config:
         from_attributes = True
