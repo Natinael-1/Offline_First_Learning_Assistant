@@ -1022,12 +1022,12 @@ export default function StudentPortal({
                         ) : isCached ? (
                           <>
                             <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                            <span>Cached</span>
+                            <span>Clear Cache</span>
                           </>
                         ) : (
                           <>
                             <Download className="h-3.5 w-3.5" />
-                            <span>Download Pack</span>
+                            <span>Cache Pack</span>
                           </>
                         )}
                       </button>
