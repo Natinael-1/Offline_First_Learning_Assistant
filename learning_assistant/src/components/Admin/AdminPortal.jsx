@@ -388,11 +388,6 @@ export default function AdminPortal({
     }
   };
 
-
-
-  
- 
-
   // 2. Reject / Delete Pending Teacher Registration
   const handleRejectTeacher = (teacherEmail) => {
     setRegisteredUsers((prev) =>
@@ -519,11 +514,11 @@ export default function AdminPortal({
   const totalTeachers = registeredUsers.filter(
     (u) => u.role === "teacher",
   ).length;
-  
+
   const totalRegisteredAccounts = registeredUsers.length;
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800 pb-12">
+    <div className="space-y-8 animate-fadeIn text-slate-800 pb-12 md:min-h-screen">
       {/* Toast Notification Banner */}
       {statusMessage && (
         <div className="fixed top-20 right-6 z-50 animate-bounce">

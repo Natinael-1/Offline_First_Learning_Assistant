@@ -631,7 +631,7 @@ export default function StudentPortal({
   }, [courses]);
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800 min-h-screen">
+    <div className="space-y-8 animate-fadeIn text-slate-800 md:min-h-screen">
       {/* HEADER BAR: Student Identity & Status Indicator */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>

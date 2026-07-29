@@ -792,7 +792,7 @@ export default function TeacherPortal({
       )}
 
       {/* HEADER BAR: Instructor Identity & Sync Engine */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4 md:min-h-screen">
         <div className="md:px-10">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
