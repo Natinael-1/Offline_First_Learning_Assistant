@@ -17,18 +17,16 @@ Server,
 import {
   Users,
   Smartphone,
-  HardDrive,
   LayoutDashboard,
   CheckCircle2,
   Wifi,
   WifiOff,
-  LogOut,
 } from "lucide-react";
 
 import AdminDashboardTab from "./AdminDashboardTab";
 import AdminUserManagementTab from "./AdminUserManagementTab";
 import AdminSMSGatewayTab from "./AdminSMSGatewayTab";
-import AdminStorageHealthTab from "./AdminStorageHealthTab";
+//import AdminStorageHealthTab from "./AdminStorageHealthTab";
 
 import PreAuthorizeUserModal from "./Modals/PreAuthorizeUserModal";
 import SystemLogDetailsModal from "./Modals/SystemLogDetailsModal";
@@ -491,7 +489,7 @@ export default function AdminPortal({
   };
 
   // 6. Execute Non-Destructive Browser Storage Sanitizer
-  const handleSanitizeStorage = () => {
+  /*const handleSanitizeStorage = () => {
     // Clear temporary render caches while protecting gradebooks, pre-approved rosters, and credentials
     const itemsCleared = ["teacher_pending_drafts", "student_draft_previews"];
     itemsCleared.forEach((key) => localStorage.removeItem(key));
@@ -506,7 +504,7 @@ export default function AdminPortal({
       "Browser cache sanitized successfully! Freed up storage space.",
       "success",
     );
-  };
+  };*/
 
   const totalStudents = preAuthorizedUsers.filter(
     (u) => u.role === "student",
@@ -580,10 +578,9 @@ export default function AdminPortal({
           {onLogout && (
             <button
               onClick={onLogout}
-              className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 border border-slate-700 rounded-2xl transition"
-              title="Sign Out of Admin Console"
+              className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
             >
-              <LogOut className="h-4 w-4" />
+              Logout
             </button>
           )}
         </div>
@@ -633,7 +630,7 @@ export default function AdminPortal({
           <span>SMS Gateway Hub ({smsGateway.creditBalance} Units)</span>
         </button>
 
-        <button
+        {/*<button
           onClick={() => setActiveTab("storage")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
             activeTab === "storage"
@@ -643,7 +640,7 @@ export default function AdminPortal({
         >
           <HardDrive className="h-4 w-4" />
           <span>Storage Health & Audit Logs</span>
-        </button>
+        </button>*/}
       </div>
 
       <div className="space-y-6 mx-10 md:mx-40">
@@ -688,14 +685,14 @@ export default function AdminPortal({
             )}
           </div>
 
-          {/* TAB 4: SYSTEM METRICS, LOCALSTORAGE SANITIZER & AUDIT LOGS */}
+          {/* TAB 4: SYSTEM METRICS, LOCALSTORAGE SANITIZER & AUDIT LOGS *
           {activeTab === "storage" && (
             <AdminStorageHealthTab
               auditLogs={auditLogs}
               onSanitizeStorage={handleSanitizeStorage}
               onSelectLogDetail={(log) => setSelectedLogDetail(log)}
             />
-          )}
+          )}*/}
 
           {/* MODAL 1: PRE-AUTHORIZE EMAIL ADDRESSES & PHONE NUMBERS */}
           {isPreAuthModalOpen && (

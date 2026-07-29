@@ -209,11 +209,11 @@ export default function AdminDashboardTab({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="flex justify-between gap-1">
           {/* Action 1: Pre-Authorize Emails */}
           <button
             onClick={onOpenPreAuthModal}
-            className="p-4 border border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-indigo-50/30 rounded-2xl text-left transition space-y-2 group"
+            className="md:pl-10 p-4 border border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-indigo-50/30 rounded-2xl text-left transition space-y-2 group"
           >
             <div className="h-9 w-9 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition">
               <Plus className="h-5 w-5" />
@@ -232,7 +232,7 @@ export default function AdminDashboardTab({
           {/* Action 2: Manage SMS Carrier API */}
           <button
             onClick={() => onNavigateTab && onNavigateTab("sms")}
-            className="p-4 border border-slate-200 hover:border-purple-400 bg-slate-50/50 hover:bg-purple-50/30 rounded-2xl text-left transition space-y-2 group"
+            className="md:pr-10 p-4 border border-slate-200 hover:border-purple-400 bg-slate-50/50 hover:bg-purple-50/30 rounded-2xl text-left transition space-y-2 group"
           >
             <div className="h-9 w-9 bg-purple-100 text-purple-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition">
               <Smartphone className="h-5 w-5" />
@@ -248,7 +248,7 @@ export default function AdminDashboardTab({
             </div>
           </button>
 
-          {/* Action 3: LocalStorage & Audit Health */}
+          {/* Action 3: LocalStorage & Audit Health *
           <button
             onClick={() => onNavigateTab && onNavigateTab("storage")}
             className="p-4 border border-slate-200 hover:border-emerald-400 bg-slate-50/50 hover:bg-emerald-50/30 rounded-2xl text-left transition space-y-2 group"
@@ -265,7 +265,7 @@ export default function AdminDashboardTab({
                 cache cleanup.
               </p>
             </div>
-          </button>
+          </button>*/}
         </div>
       </div>
 
