@@ -20,17 +20,9 @@ export default function TeacherQAQueueTab({
   const [searchQuery, setSearchQuery] = useState("");
   const [replyInputs, setReplyInputs] = useState({});
 
-  // Real student questions live in course.discussions (same field
-  // StudentPortal's Q&A tab posts into). No qaPosts fallback — that
-  // shape (studentName/question/isAnswered) doesn't match discussions
-  // (author/text/replies) and mixing them is exactly what crashed here.
   const questions = activeCourse?.discussions || [];
 
   const isAnswered = (item) => (item.replies?.length || 0) > 0;
-
-  // Fixed: was reading q.question / q.studentName, which don't exist on
-  // discussion objects (they have .text / .author instead) — calling
-  // .toLowerCase() on the undefined .question was the crash.
   const filteredQuestions = questions.filter((q) => {
     const answered = isAnswered(q);
     const matchesFilter =

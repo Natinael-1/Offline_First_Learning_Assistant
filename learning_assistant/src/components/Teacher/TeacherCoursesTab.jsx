@@ -10,19 +10,13 @@ import {
 } from "lucide-react";
 
 /**
- * TeacherCoursesTab Component
- *
- * Renders the primary dashboard grid of modules published by the instructor.
- * Allows searching/filtering courses and provides actions to manage a specific course
- * or create new course modules.
+ 
  *
  * @param {Array} courses - Array of course objects
  * @param {Function} onSelectCourse - Callback triggered when selecting a course card (passes courseId)
  * @param {Function} onOpenCreateModal - Callback to trigger the course creation modal
  */
 
-// Single source of truth for the fallback subject label, used for both
-// the filter pills and the actual filtering — keeps them in sync.
 const resolveSubject = (course) => course.subject || "General";
 
 const getTeacherDisplayName = (teacher) => {

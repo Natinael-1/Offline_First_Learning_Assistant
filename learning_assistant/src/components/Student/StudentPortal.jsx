@@ -30,7 +30,7 @@ import {
 //API end points
 import { coursesAPI, quizzesAPI } from "../../services/api";
 
-// Removes heavy PDF binary strings before saving to localStorage
+// Removes heavy PDF before saving to localStorage
 function sanitizeCoursesForStorage(coursesList) {
   if (!Array.isArray(coursesList)) return [];
 
@@ -47,7 +47,7 @@ function sanitizeCoursesForStorage(coursesList) {
   }));
 }
 
-// Seed Initial Mock Courses Data (Matches PostgreSQL Schema)
+// Seed Initial Mock Courses Data (Matches the database Schema)
 const INITIAL_COURSES = [
   {
     id: 101,
@@ -347,31 +347,6 @@ export default function StudentPortal({
   //To make the download and cache button functional
   const [downloadingCourseId, setDownloadingCourseId] = useState(null);
 
-  // Quiz Engine Active States
-  //const [quizUserAnswers, setQuizUserAnswers] = useState({});
-  //const [quizSubmittedResult, setQuizSubmittedResult] = useState(null);
-
-  // Flashcards Active States
-  //const [cardIndex, setCardIndex] = useState(0);
-  //const [isCardFlipped, setIsCardFlipped] = useState(false);
-
-  // Comment Input State
-
-  // Local Storage Synchronization Hooks
-  /*useEffect(() => {
-    localStorage.setItem(
-      "student_cached_courses",
-      JSON.stringify(cachedCourseIds),
-    );
-  }, [cachedCourseIds]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "student_personal_notes",
-      JSON.stringify(personalNotes),
-    );
-  }, [personalNotes]);*/
-
   useEffect(() => {
     localStorage.setItem(
       "student_cached_course_ids", // 👈 Updated key name to prevent collision
@@ -385,36 +360,6 @@ export default function StudentPortal({
       JSON.stringify(personalNotes),
     );
   }, [personalNotes]);
-
-  /*useEffect(() => {
-    localStorage.setItem("student_quiz_attempts", JSON.stringify(quizAttempts));
-  }, [quizAttempts]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "student_discussions",
-      JSON.stringify(discussionsState),
-    );
-  }, [discussionsState]);*/
-
-  // Derived Values
-  /*const activeCourse = courses.find((c) => c.id === activeCourseId);
-  const subjects = ["All", ...new Set(courses.map((c) => c.subject))];
-  const pendingSyncCount =
-    quizAttempts.filter((a) => a.status === "pending_sync").length +
-    Object.values(discussionsState)
-      .flat()
-      .filter((d) => d.status === "pending_sync").length;*/
-
-  // Handler: Toggle Offline Course Pack Download
-  /*const handleToggleDownloadPack = (courseId, e) => {
-    e?.stopPropagation();
-    if (cachedCourseIds.includes(courseId)) {
-      setCachedCourseIds((prev) => prev.filter((id) => id !== courseId));
-    } else {
-      setCachedCourseIds((prev) => [...prev, courseId]);
-    }
-  };*/
 
   // Handler: Save Personal Notes
   const handleNoteChange = (noteKey, text) => {
@@ -431,39 +376,6 @@ export default function StudentPortal({
     //setQuizSubmittedResult(null);
   };
 
-  /*const handleSubmitQuiz = () => {
-    if (!activeQuiz) return;
-
-    let correctCount = 0;
-    activeQuiz.questions.forEach((q) => {
-      if (quizUserAnswers[q.id] === q.correctAnswer) {
-        correctCount += 1;
-      }
-    });
-
-    const scorePercentage = Math.round(
-      (correctCount / activeQuiz.questions.length) * 100,
-    );
-    const now = Date.now();
-    const currentDate = new Date(now).toLocaleDateString();
-
-    const attemptRecord = {
-      id: `attempt_${now}`,
-      quizId: activeQuiz.id,
-      quizTitle: activeQuiz.title,
-      courseId: activeCourse.id,
-      score: scorePercentage,
-      totalQuestions: activeQuiz.questions.length,
-      correctCount,
-      timestamp: currentDate,
-      status: isOnlineSimulated ? "synced" : "pending_sync",
-    };
-
-    setQuizAttempts((prev) => [attemptRecord, ...prev]);
-    setQuizSubmittedResult(attemptRecord);
-  };*/
-
-  // Handler: Add Discussion Question
   const handlePostComment = async (e) => {
     e.preventDefault();
     if (!newCommentText.trim() || !activeCourse) return;
@@ -513,32 +425,6 @@ export default function StudentPortal({
 
     setNewCommentText("");
   };
-  /*const handlePostComment = (e) => {
-    e.preventDefault();
-    if (!newCommentText.trim() || !activeCourse) return;
-
-    const now = Date.now();
-    const currentDate = new Date(now).toLocaleDateString();
-
-    const newComment = {
-      id: `comment_${now}`,
-      author: currentUser?.username || "Student",
-      role: "Student",
-      date: currentDate,
-      text: newCommentText.trim(),
-      status: isOnlineSimulated ? "synced" : "pending_sync",
-      replies: [],
-    };
-
-    const courseDiscussions =
-      discussionsState[activeCourse.id] || activeCourse.discussions || [];
-    setDiscussionsState((prev) => ({
-      ...prev,
-      [activeCourse.id]: [newComment, ...courseDiscussions],
-    }));
-
-    setNewCommentText("");
-  };*/
 
   // Filter Courses
   const filteredCourses = courses.filter((c) => {
@@ -549,56 +435,6 @@ export default function StudentPortal({
       selectedSubject === "All" || c.subject === selectedSubject;
     return matchesSearch && matchesSubject;
   });
-  /*const filteredCourses = courses.filter((c) => {
-    const matchesSearch =
-      c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.teacher.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject =
-      selectedSubject === "All" || c.subject === selectedSubject;
-    return matchesSearch && matchesSubject;
-  });*/
-
-  // 1. Fetch Courses on Load
-  /*useEffect(() => {
-    async function loadCourses() {
-      try {
-        const data = await coursesAPI.getAllCourses();
-
-        setCourses(data);
-        localStorage.setItem("student_cached_courses", JSON.stringify(data));
-      } catch (err) {
-        console.error(`Error ocurred: ${err}`);
-        console.warn("FastAPI unreachable, loading cached data.");
-        setCourses(INITIAL_COURSES);
-      }
-    }
-    loadCourses();
-  }, []);*/
-  /*useEffect(() => {
-    async function loadCourses() {
-      try {
-        const data = await coursesAPI.getAllCourses();
-        if (Array.isArray(data) && data.length > 0) {
-          setCourses(data);
-          localStorage.setItem("student_cached_courses", JSON.stringify(data));
-        }
-      } catch (err) {
-        console.error(`Error Ocurred: ${err}`);
-        console.warn(
-          "FastAPI unreachable, loading cached data from LocalStorage.",
-        );
-        const savedCache = localStorage.getItem("student_cached_courses");
-        if (savedCache) {
-          try {
-            setCourses(JSON.parse(savedCache));
-          } catch (e) {
-            console.error("Failed to parse cached courses:", e);
-          }
-        }
-      }
-    }
-    loadCourses();
-  }, []);*/
 
   useEffect(() => {
     async function loadCourses() {
@@ -678,78 +514,7 @@ export default function StudentPortal({
     (a) => a.status === "pending_sync",
   ).length;
 
-  //Package downloader and cacher
-  /*const handleToggleDownloadPack = async (courseId, e) => {
-    e?.stopPropagation();
-
-    const course = courses.find((c) => c.id === courseId);
-    if (!course) return;
-
-    const isCurrentlyCached = cachedCourseIds.includes(courseId);
-
-    // --- CASE 1: REMOVE FROM CACHE (Clean up storage) ---
-    if (isCurrentlyCached) {
-      setDownloadingCourseId(courseId);
-      try {
-        if (Array.isArray(course.materials)) {
-          for (const mat of course.materials) {
-            if (mat.id) {
-              await deletePDFFromCache(mat.id);
-            }
-          }
-        }
-        // Remove from cached list
-        setCachedCourseIds((prev) => prev.filter((id) => id !== courseId));
-      } catch (err) {
-        console.error("Failed to remove course pack from Cache Storage:", err);
-      } finally {
-        setDownloadingCourseId(null);
-      }
-      return;
-    }
-
-    // --- CASE 2: DOWNLOAD TO CACHE (Save for offline reading) ---
-    if (!course.materials || course.materials.length === 0) {
-      alert("This course has no PDF materials to cache.");
-      return;
-    }
-
-    setDownloadingCourseId(courseId);
-
-    try {
-      let successCount = 0;
-
-      for (const mat of course.materials) {
-        let rawPayload = mat.file_data || mat.fileData;
-
-        // If file_data was stripped from localStorage, fetch full payload from FastAPI when online
-        if (!rawPayload && navigator.onLine) {
-          try {
-            const fullMat = await coursesAPI.getMaterialById?.(mat.id);
-            rawPayload = fullMat?.file_data || fullMat?.fileData;
-          } catch (fetchErr) {
-            console.warn(
-              `Could not fetch online material #${mat.id}:`,
-              fetchErr,
-            );
-          }
-        }
-
-        // Save PDF binary to Cache Storage ("user-uploaded-materials")
-        if (mat.id && rawPayload) {
-          const saved = await savePDFToCache(mat.id, rawPayload);
-          if (saved) successCount++;
-        }
-      }
-
-      // Mark course as cached once complete
-      setCachedCourseIds((prev) => [...prev, courseId]);
-    } catch (err) {
-      console.error("Failed to cache course pack:", err);
-    } finally {
-      setDownloadingCourseId(null);
-    }
-  };*/
+  //Package downloader and cacher function
   const handleToggleDownloadPack = async (courseId, e) => {
     e?.stopPropagation();
 
@@ -866,7 +631,7 @@ export default function StudentPortal({
   }, [courses]);
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 min-h-screen">
       {/* HEADER BAR: Student Identity & Status Indicator */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
@@ -874,10 +639,6 @@ export default function StudentPortal({
             <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-md">
               Student Workspace
             </span>
-            {/*<span className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
-              <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-              <span>4-Day Study Streak</span>
-            </span>*/}
           </div>
           <h1 className="text-2xl font-black text-slate-900 mt-2">
             Welcome back, {currentUser?.username || "Student"}!
@@ -1032,38 +793,6 @@ export default function StudentPortal({
                         )}
                       </button>
                     </div>
-                    {/* Top Row: Subject & Download Badge */}
-                    {/*<div className="flex justify-between items-center">
-                      <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
-                        {course.subject}
-                      </span>
-
-                      <button
-                        onClick={(e) => handleToggleDownloadPack(course.id, e)}
-                        title={
-                          isCached
-                            ? "Course Pack Downloaded (Click to remove)"
-                            : "Download Complete Course Pack for Offline Use"
-                        }
-                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-lg border transition ${
-                          isCached
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                            : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600"
-                        }`}
-                      >
-                        {isCached ? (
-                          <>
-                            <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                            <span>Cached</span>
-                          </>
-                        ) : (
-                          <>
-                            <Download className="h-3.5 w-3.5" />
-                            <span>Download Pack</span>
-                          </>
-                        )}
-                      </button>
-                    </div>*/}
 
                     {/* Course Title & Teacher */}
                     <div>
@@ -1164,13 +893,6 @@ export default function StudentPortal({
               </button>
             </div>
 
-            {/*<h2 className="text-2xl font-black">{activeCourse.title}</h2>
-            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-              {activeCourse.description}
-            </p>
-            <p className="text-xs text-indigo-300 font-semibold pt-1">
-              Instructor: {activeCourse.teacher}
-            </p>*/}
             <h2 className="text-2xl font-black">{activeCourse.title}</h2>
             <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
               {typeof activeCourse.description === "object"

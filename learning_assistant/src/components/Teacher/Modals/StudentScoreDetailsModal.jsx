@@ -1,7 +1,5 @@
 import { useEffect } from "react";
-/*
- Award,
-*/
+
 import {
   X,
   CheckCircle2,
@@ -16,12 +14,6 @@ import {
 } from "lucide-react";
 
 /**
- * StudentScoreDetailsModal Component
- *
- * Detailed inspector overlay for instructors to audit an individual
- * student's quiz attempt, question-by-question selections, correct keys,
- * and synchronization status.
- *
  * @param {Object} attempt - Selected student quiz attempt object
  * @param {Function} onClose - Callback () => void to close modal overlay
  */

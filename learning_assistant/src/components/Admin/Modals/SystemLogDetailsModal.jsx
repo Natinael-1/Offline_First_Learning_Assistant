@@ -1,11 +1,5 @@
 import { useState, useEffect } from "react";
 
-/*
-AlertCircle,
-Database,
-Smartphone,
-*/
-
 import {
   X,
   Activity,
@@ -20,12 +14,7 @@ import {
 } from "lucide-react";
 
 /**
- * SystemLogDetailsModal Component
- *
- * Detailed inspector dialog for IT administrators to review full metadata,
- * action categories, actor details, timestamps, and full system event payloads
- * recorded in the administrative security audit log.
- *
+ 
  * @param {Object} log - Selected audit log item
  * @param {Function} onClose - Callback () => void to dismiss the inspector overlay
  */

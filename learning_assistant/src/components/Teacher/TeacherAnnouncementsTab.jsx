@@ -35,8 +35,6 @@ export default function TeacherAnnouncementsTab({
 
   const postTimerRef = useRef(null);
 
-  // Cancel any in-flight "post" simulation if this tab unmounts before
-  // the 400ms delay finishes (e.g. teacher switches tabs or courses)
   useEffect(() => {
     return () => {
       if (postTimerRef.current) clearTimeout(postTimerRef.current);
@@ -44,8 +42,7 @@ export default function TeacherAnnouncementsTab({
   }, []);
 
   const announcementsList = activeCourse?.announcements || [];
-  // Fixed: nullish coalescing so a genuine 0-enrollment course displays
-  // as 0, not a hardcoded 28.
+
   const enrolledCount = activeCourse?.enrolledStudents ?? 0;
 
   const handleSubmit = (e) => {
@@ -67,10 +64,7 @@ export default function TeacherAnnouncementsTab({
       title: title.trim(),
       content: content.trim(),
       date: formattedDate,
-      // smsRequested records what the teacher actually asked for, independent
-      // of whether it could be carried out immediately. sentViaSMS records
-      // the outcome so far. Without smsRequested, an offline SMS request was
-      // indistinguishable from "never asked for SMS" once created.
+
       smsRequested: sendSMS,
       sentViaSMS: sendSMS && isOnlineSimulated,
       status: isOnlineSimulated ? "synced" : "pending_sync",
@@ -275,9 +269,6 @@ export default function TeacherAnnouncementsTab({
         ) : (
           <div className="space-y-3">
             {announcementsList.map((ann) => {
-              // Fixed: distinguish "confirmed sent," "queued to send once
-              // reconnected," and "never requested" instead of collapsing
-              // the offline-but-requested case into "Web Portal Only."
               const smsBadge = ann.sentViaSMS ? (
                 <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1">
                   <Smartphone className="h-3 w-3 text-emerald-600" />

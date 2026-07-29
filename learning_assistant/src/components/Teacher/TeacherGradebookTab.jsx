@@ -13,19 +13,13 @@ import {
 } from "lucide-react";
 
 /**
- * TeacherGradebookTab Component
- *
- * Renders the score ledger and class performance analytics for an active course.
- * Allows instructors to search, filter by quiz title, review pass rates,
- * and inspect detailed student question breakdown logs.
+ 
  *
  * @param {Object} activeCourse - Active course object
  * @param {Array} quizAttempts - Array of student quiz attempts for this course
  * @param {Function} onSelectAttemptDetail - Callback (attempt) => void to open details modal
  */
 
-// Threshold used both for aggregate pass-rate stats and the per-row badge —
-// pulled out so the two can't drift apart if it's ever tuned.
 const PASS_THRESHOLD = 70;
 
 export default function TeacherGradebookTab({
@@ -226,17 +220,6 @@ export default function TeacherGradebookTab({
                     >
                       {/* Student Info */}
                       <td className="py-3.5 px-4">
-                        {/*
-                          Fixed: was falling back to a hardcoded real name
-                          ("Natinael Boda" / student@school.edu) whenever a
-                          record lacked studentName/studentEmail — which is
-                          every real student submission today, since
-                          StudentPortal.handleSubmitQuiz doesn't set those
-                          fields. That silently misattributed every real
-                          student's score to one specific person. The real
-                          fix is upstream in StudentPortal; this at least
-                          stops the false attribution here.
-                        */}
                         <div className="font-bold text-slate-900">
                           {attempt.studentName || "Unknown Student"}
                         </div>

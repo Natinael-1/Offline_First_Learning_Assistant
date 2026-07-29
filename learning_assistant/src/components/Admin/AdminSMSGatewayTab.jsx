@@ -1,10 +1,6 @@
 import { useState } from "react";
 
-/*
-RefreshCw,
-AlertCircle,
-Shield,
-*/
+
 
 import {
   Smartphone,
@@ -25,11 +21,7 @@ import {
 } from "lucide-react";
 
 /**
- * AdminSMSGatewayTab Component
- *
- * Manages cellular SMS text notice dispatch operations via Africa's Talking API.
- * Displays carrier connection status, API credit balances, top-up controls,
- * real-time segment cost calculators, and historical transmission audit logs.
+ 
  *
  * @param {Object} smsGateway - Gateway state object containing balance, config, and logs
  * @param {number} studentCount - Total count of enrolled students for estimations

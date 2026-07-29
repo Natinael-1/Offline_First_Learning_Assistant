@@ -388,97 +388,10 @@ export default function AdminPortal({
     }
   };
 
-  /*const handleApproveTeacher = async (teacherId) => {
-    // No need to find by email anymore! We have the exact ID from the backend
-    if (typeof teacherId === "string" && teacherId.includes("@")) {
-      console.error("CRITICAL ERROR: Email was passed as ID:", teacherId);
-      triggerNotification(
-        "Error: System error (ID is an email). Check your data source.",
-        "amber",
-      );
-      return; // STOP HERE
-    }
-    console.log("Approving teacher with ID:", teacherId);
 
-    if (isOnlineSimulated && teacherId) {
-      try {
-        await adminAPI.approveTeacher(teacherId); // Call with ID
 
-        // Update local state to reflect the change
-        setRegisteredUsers((prev) =>
-          prev.map((u) =>
-            u.id === teacherId ? { ...u, isApproved: true } : u,
-          ),
-        );
-
-        triggerNotification(`Approved teacher ID ${teacherId}`, "success");
-      } catch (err) {
-        triggerNotification(`Error: ${err.message}`, "amber");
-      }
-    }
-  };*/
-
-  /*const handleApproveTeacher = async (teacherEmail) => {
-    // Find teacher in state
-    const targetUser = registeredUsers.find(
-      (u) => u.email.toLowerCase() === teacherEmail.toLowerCase(),
-    );
-
-    //for check
-    console.log("Checking conditions - isOnlineSimulated:", isOnlineSimulated);
-    console.log("Checking conditions - targetUser ID:", targetUser?.id);
-    console.log("Full user object structure:", Object.keys(targetUser));
-
-    if (isOnlineSimulated && targetUser?.id) {
-      try {
-        // Execute real DB update in SQLite/PostgreSQL (sets is_approved = 1)
-        await adminAPI.approveTeacher(targetUser.id);
-        triggerNotification(
-          `Approved account for ${teacherEmail} in database!`,
-          "success",
-        );
-      } catch (err) {
-        triggerNotification(`Error approving account: ${err.message}`, "amber");
-        return;
-      }
-    }
-
-    // Local state update
-    setRegisteredUsers((prev) =>
-      prev.map((user) =>
-        user.email.toLowerCase() === teacherEmail.toLowerCase()
-          ? { ...user, isApproved: true }
-          : user,
-      ),
-    );
-
-    appendAuditLog(
-      "APPROVE_TEACHER",
-      teacherEmail,
-      `Granted publishing rights to ${teacherEmail}.`,
-    );
-  };/*
-  /*const handleApproveTeacher = (teacherEmail) => {
-    setRegisteredUsers((prev) =>
-      prev.map((user) => {
-        if (user.email.toLowerCase() === teacherEmail.toLowerCase()) {
-          return { ...user, isApproved: true };
-        }
-        return user;
-      }),
-    );
-
-    appendAuditLog(
-      "APPROVE_TEACHER",
-      teacherEmail,
-      `Approved account registration and granted curriculum publishing rights to ${teacherEmail}.`,
-    );
-
-    triggerNotification(
-      `Approved account for ${teacherEmail}. Teacher now has publishing rights.`,
-      "success",
-    );
-  };*/
+  
+ 
 
   // 2. Reject / Delete Pending Teacher Registration
   const handleRejectTeacher = (teacherEmail) => {
@@ -606,14 +519,7 @@ export default function AdminPortal({
   const totalTeachers = registeredUsers.filter(
     (u) => u.role === "teacher",
   ).length;
-  /*const pendingTeacherApprovals = registeredUsers.filter((u) => {
-    u.role === "teacher" && !u.isApproved;
-    const isPending = u.role === "teacher" && !u.isApproved;
-    if (isPending) {
-      console.log("Pending Teacher ID:", u.id, "Email:", u.email);
-    }
-    return isPending;
-  });*/
+  
   const totalRegisteredAccounts = registeredUsers.length;
 
   return (

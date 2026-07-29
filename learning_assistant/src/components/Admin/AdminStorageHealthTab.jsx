@@ -1,14 +1,5 @@
 import { useState, useEffect } from "react";
 
-/*
-Trash2,
-AlertTriangle,
-FileText,
-Sparkles,
-Server,
-
-*/
-
 import {
   HardDrive,
   RefreshCw,
@@ -83,11 +74,7 @@ function getStorageMetrics() {
 }
 
 /**
- * AdminStorageHealthTab Component
- *
- * Provides IT administrators with real-time browser memory health diagnostics,
- * explicit byte calculations for localStorage keys against the ~5MB quota,
- * 1-click non-destructive cache sanitization, and historical security audit logs.
+ 
  *
  * @param {Array} auditLogs - Array of administrative system activity events
  * @param {Function} onSanitizeStorage - Callback () => void to execute non-destructive cache cleanup

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getPDFFromCache, savePDFToCache } from "../../../utils/cacheStorage";
+//import { getPDFFromCache, savePDFToCache } from "../../../utils/cacheStorage";
 import {
   FileText,
   X,
@@ -13,25 +13,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-// TODO: extract into a shared module (e.g. src/utils/materialsCache.js)
-// and import it here and in TeacherContentPublisherTab.jsx. Keeping this
-// name/lookup logic duplicated across files is exactly what let this
-// component silently drift out of sync with the upload flow in the first
-// place — the cache name and the fileCacheKey convention need one source
-// of truth, not two copies that have to be remembered to update together.
 const MATERIALS_CACHE_NAME = "user-uploaded-materials";
 
-/**
- * DocumentReaderModal Component
- *
- * Renders an in-app interactive document reader. Supports two file
- * sources:
- *  1. Current: fileCacheKey pointing into Cache Storage (real uploaded
- *     files, published via TeacherContentPublisherTab's current flow).
- *  2. Legacy: base64 fileData/file_data on the material object directly,
- *     or a bare http(s)/blob URL — kept working for older cached course
- *     data created before the Cache Storage migration.
- */
 export default function DocumentReaderModal({
   activeMaterial,
   activeCourseId,
@@ -43,9 +26,6 @@ export default function DocumentReaderModal({
   const [blobUrl, setBlobUrl] = useState(null);
   const [loadStatus, setLoadStatus] = useState("idle"); // 'idle' | 'loading' | 'ready' | 'missing' | 'error'
 
-  // Optional chaining throughout — these must not throw if activeMaterial
-  // is ever null/undefined when this renders, since hooks below run
-  // unconditionally regardless of the early-return guard further down.
   const summaryContent = activeMaterial?.content || "";
   const fileCacheKey =
     activeMaterial?.fileCacheKey || activeMaterial?.file_cache_key || null;
@@ -57,118 +37,6 @@ export default function DocumentReaderModal({
     (typeof summaryContent === "string" && summaryContent.startsWith("data:")
       ? summaryContent
       : null);
-
-  /*useEffect(() => {
-    let createdUrl = null;
-    let cancelled = false;
-
-    if (!activeMaterial) {
-      setBlobUrl(null);
-      setLoadStatus("idle");
-      return;
-    }
-
-    // Path 1: real uploaded file living in Cache Storage — this is what
-    // TeacherContentPublisherTab's current upload flow produces, and the
-    // piece this component was previously missing entirely.
-    if (fileCacheKey) {
-      setLoadStatus("loading");
-      setBlobUrl(null);
-
-      (async () => {
-        try {
-          if (!("caches" in window)) {
-            if (!cancelled) setLoadStatus("error");
-            return;
-          }
-          const cache = await caches.open(MATERIALS_CACHE_NAME);
-          const response = await cache.match(fileCacheKey);
-          if (!response) {
-            if (!cancelled) setLoadStatus("missing");
-            return;
-          }
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          if (cancelled) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          createdUrl = url;
-          setBlobUrl(url);
-          setLoadStatus("ready");
-        } catch (err) {
-          console.error("Failed to load material from Cache Storage:", err);
-          if (!cancelled) setLoadStatus("error");
-        }
-      })();
-
-      return () => {
-        cancelled = true;
-        if (createdUrl) URL.revokeObjectURL(createdUrl);
-      };
-    }
-
-    // Path 2: legacy base64 payload or a bare URL — no cache key present,
-    // so this material predates the Cache Storage migration.
-    if (!legacyFilePayload) {
-      setBlobUrl(null);
-      setLoadStatus("idle");
-      return;
-    }
-
-    if (
-      legacyFilePayload.startsWith("http://") ||
-      legacyFilePayload.startsWith("https://") ||
-      legacyFilePayload.startsWith("blob:")
-    ) {
-      setBlobUrl(legacyFilePayload);
-      setLoadStatus("ready");
-      return;
-    }
-
-    if (legacyFilePayload.startsWith("data:")) {
-      setLoadStatus("loading");
-      // Wrap in setTimeout(..., 0) to prevent synchronous setState warning
-      // during useEffect execution — kept from the original implementation.
-      const timer = setTimeout(() => {
-        try {
-          const parts = legacyFilePayload.split(",");
-          const mimeMatch = parts[0].match(/:(.*?);/);
-          const mime = mimeMatch ? mimeMatch[1] : "application/pdf";
-          const bstr = atob(parts[1]);
-          let n = bstr.length;
-          const u8arr = new Uint8Array(n);
-          while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
-          }
-          const blob = new Blob([u8arr], { type: mime });
-          const url = URL.createObjectURL(blob);
-          if (cancelled) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          createdUrl = url;
-          setBlobUrl(url);
-          setLoadStatus("ready");
-        } catch (err) {
-          console.error(
-            "Failed to construct Blob URL from legacy document payload:",
-            err,
-          );
-          if (!cancelled) setLoadStatus("error");
-        }
-      }, 0);
-
-      return () => {
-        cancelled = true;
-        clearTimeout(timer);
-        if (createdUrl) URL.revokeObjectURL(createdUrl);
-      };
-    }
-
-    setBlobUrl(null);
-    setLoadStatus("idle");
-  }, [fileCacheKey, legacyFilePayload, activeMaterial]);*/
 
   useEffect(() => {
     let cancelled = false;
@@ -300,123 +168,6 @@ export default function DocumentReaderModal({
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
   }, [fileCacheKey, legacyFilePayload, activeMaterial]);
-  /*useEffect(() => {
-    let cancelled = false;
-    let createdUrl = null;
-
-    (async () => {
-      // Single microtask hop before any setState call, so nothing in this
-      // effect fires synchronously within the same tick it was scheduled —
-      // that's what the "calling setState synchronously within an effect"
-      // warning is about. Every branch below now runs after this await,
-      // including the early-return "no material" / "no payload" cases that
-      // previously called setState before any async work happened.
-      await Promise.resolve();
-      if (cancelled) return;
-
-      if (!activeMaterial) {
-        setBlobUrl(null);
-        setLoadStatus("idle");
-        return;
-      }
-
-      // Path 1: real uploaded file living in Cache Storage — this is what
-      // TeacherContentPublisherTab's current upload flow produces.
-      if (fileCacheKey) {
-        setLoadStatus("loading");
-        setBlobUrl(null);
-
-        try {
-          if (!("caches" in window)) {
-            if (!cancelled) setLoadStatus("error");
-            return;
-          }
-          const cache = await caches.open(MATERIALS_CACHE_NAME);
-          if (cancelled) return;
-
-          const response = await cache.match(fileCacheKey);
-          if (cancelled) return;
-          if (!response) {
-            setLoadStatus("missing");
-            return;
-          }
-
-          const blob = await response.blob();
-          if (cancelled) return;
-
-          const url = URL.createObjectURL(blob);
-          if (cancelled) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          createdUrl = url;
-          setBlobUrl(url);
-          setLoadStatus("ready");
-        } catch (err) {
-          console.error("Failed to load material from Cache Storage:", err);
-          if (!cancelled) setLoadStatus("error");
-        }
-        return;
-      }
-
-      // Path 2: legacy base64 payload or a bare URL — no cache key present,
-      // so this material predates the Cache Storage migration.
-      if (!legacyFilePayload) {
-        setBlobUrl(null);
-        setLoadStatus("idle");
-        return;
-      }
-
-      if (
-        legacyFilePayload.startsWith("http://") ||
-        legacyFilePayload.startsWith("https://") ||
-        legacyFilePayload.startsWith("blob:")
-      ) {
-        setBlobUrl(legacyFilePayload);
-        setLoadStatus("ready");
-        return;
-      }
-
-      if (legacyFilePayload.startsWith("data:")) {
-        setLoadStatus("loading");
-        try {
-          const parts = legacyFilePayload.split(",");
-          const mimeMatch = parts[0].match(/:(.*?);/);
-          const mime = mimeMatch ? mimeMatch[1] : "application/pdf";
-          const bstr = atob(parts[1]);
-          let n = bstr.length;
-          const u8arr = new Uint8Array(n);
-          while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
-          }
-          const blob = new Blob([u8arr], { type: mime });
-          const url = URL.createObjectURL(blob);
-          if (cancelled) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          createdUrl = url;
-          setBlobUrl(url);
-          setLoadStatus("ready");
-        } catch (err) {
-          console.error(
-            "Failed to construct Blob URL from legacy document payload:",
-            err,
-          );
-          if (!cancelled) setLoadStatus("error");
-        }
-        return;
-      }
-
-      setBlobUrl(null);
-      setLoadStatus("idle");
-    })();
-
-    return () => {
-      cancelled = true;
-      if (createdUrl) URL.revokeObjectURL(createdUrl);
-    };
-  }, [fileCacheKey, legacyFilePayload, activeMaterial]);*/
 
   if (!activeMaterial) return null;
 

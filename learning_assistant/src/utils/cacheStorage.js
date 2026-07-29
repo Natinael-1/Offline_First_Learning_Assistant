@@ -1,13 +1,5 @@
-/**
- * Utility helper to manage offline PDF file storage inside
- * the browser's Cache Storage API ("user-uploaded-materials" bucket).
- */
-
 const CACHE_NAME = "user-uploaded-materials";
 
-// Standardized synthetic URL format for caching materials by ID
-/*const getMaterialCacheUrl = (materialId) => `/materials/mat_${materialId}`;*/
-// Standardized synthetic URL format for caching materials by ID
 export const getMaterialCacheUrl = (materialId) => {
   if (!materialId) return "/materials/mat_unknown";
   const idStr = String(materialId);
@@ -15,8 +7,7 @@ export const getMaterialCacheUrl = (materialId) => {
   return `/materials/${cleanId}`;
 };
 
-/**
- * Saves a PDF file (Base64 string or Blob) into Cache Storage.
+/*** Saves a PDF file (Base64 string or Blob) into Cache Storage.
  *
  * @param {string|number} materialId - Unique ID of the material
  * @param {string|Blob} fileData - Base64 Data URL or Blob object

@@ -11,21 +11,9 @@ import {
   Smartphone,
   Layers,
   User,
-  RefreshCw,
 } from "lucide-react";
 import { authAPI } from "../services/api";
 
-// Pre-authorized domain registry
-/*const PRE_AUTHORIZED_EMAILS = {
-  student: [
-    "student1@student.edu",
-    "student2@student.edu",
-    "natinael@student.edu",
-    "abebe@student.edu",
-  ],
-  teacher: ["amina@teacher.edu", "joshua@teacher.edu", "kwame@teacher.edu"],
-  admin: ["admin@admin.edu", "it_support@admin.edu"],
-};*/
 
 // Default seed accounts to ensure seamless offline testing
 const DEFAULT_SEED_USERS = [
@@ -111,34 +99,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
       return DEFAULT_SEED_USERS.map((u) => ({ ...u, id: Number(u.id) }));
     }
   });
-  /*const [registeredUsers, setRegisteredUsers] = useState(() => {
-    try {
-      const saved = localStorage.getItem("school_registered_users");
-      if (!saved) return DEFAULT_SEED_USERS;
-
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed) || parsed.length === 0)
-        return DEFAULT_SEED_USERS;
-
-      const merged = [...parsed];
-      DEFAULT_SEED_USERS.forEach((defaultUser) => {
-        if (
-          !merged.some(
-            (u) => u.email.toLowerCase() === defaultUser.email.toLowerCase(),
-          )
-        ) {
-          merged.push(defaultUser);
-        }
-      });
-      return merged;
-    } catch (err) {
-      console.error(
-        "Failed to parse stored users, falling back to defaults:",
-        err,
-      );
-      return DEFAULT_SEED_USERS;
-    }
-  });*/
 
   const persistUsers = (users) => {
     setRegisteredUsers(users);
@@ -329,10 +289,10 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
     setResetPasswordEmail("");
   };
 
-  const handleResetDemoAccounts = () => {
+  /*const handleResetDemoAccounts = () => {
     persistUsers(DEFAULT_SEED_USERS);
     triggerToast("Demo accounts restored! Login using password123", "success");
-  };
+  };*/
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between font-sans">
@@ -551,18 +511,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
           </div>
         )}
       </main>
-
-      <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 w-full mt-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6 text-xs">
-          <div className="text-center md:text-left space-y-1">
-            <p className="font-medium text-slate-300">
-              &copy; {new Date().getFullYear()} Offline-First Learning
-              Assistant. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
-
       {showAuthModal && (
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-slate-100 space-y-6">
@@ -589,7 +537,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
             </div>
 
             {/* Demo Credentials Quick-Fill Box */}
-            {authMode === "login" && (
+            {/*{authMode === "login" && (
               <div className="bg-indigo-50/80 border border-indigo-200 p-3 rounded-xl space-y-1 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="font-extrabold text-indigo-950">
@@ -651,7 +599,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                   </p>
                 </div>
               </div>
-            )}
+            )}*/}
 
             {authMode === "login" && (
               <form onSubmit={handleLogin} className="space-y-4">

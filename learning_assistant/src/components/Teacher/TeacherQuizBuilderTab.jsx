@@ -1,10 +1,5 @@
 import { useState } from "react";
 
-/*
-CheckCircle2,
-Sparkles,
-AlertCircle,
-*/
 import {
   Award,
   Plus,
@@ -18,7 +13,6 @@ import {
 } from "lucide-react";
 
 /**
- 
  * @param {Object} activeCourse - Active course object containing quizzes
  * @param {Function} onOpenQuizCreator - Callback to open the visual Quiz Creator modal
  * @param {Array} quizAttempts - Array of student quiz score attempts for this course

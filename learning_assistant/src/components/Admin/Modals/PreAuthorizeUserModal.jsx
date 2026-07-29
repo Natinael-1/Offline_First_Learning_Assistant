@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 
-/*
-Upload,
-Users,
-*/
+
 import {
   X,
   UserPlus,
@@ -17,11 +14,7 @@ import {
 } from "lucide-react";
 
 /**
- * PreAuthorizeUserModal Component
- *
- * Interactive dialog for system administrators to pre-authorize individual
- * or bulk school email addresses (@student.edu, @teacher.edu, @admin.edu)
- * along with associated mobile phone numbers required for SMS broadcasts.
+ 
  *
  * @param {Function} onSubmit - Callback function (newEntriesArray) => void
  * @param {Function} onClose - Callback function () => void to dismiss modal
@@ -36,7 +29,7 @@ export default function PreAuthorizeUserModal({ onSubmit, onClose }) {
 
   // Bulk Entry Form State
   const [bulkText, setBulkText] = useState("");
-  const [defaultBulkRole, setDefaultBulkRole] = useState("student");
+  //const [defaultBulkRole, setDefaultBulkRole] = useState("student");
 
   // Form Feedback State
   const [errorMessage, setErrorMessage] = useState("");

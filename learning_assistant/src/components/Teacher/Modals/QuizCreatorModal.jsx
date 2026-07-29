@@ -13,10 +13,6 @@ import {
 } from "lucide-react";
 
 /**
- * QuizCreatorModal Component
- *
- * Interactive builder overlay enabling teachers to design self-grading
- * assessments with dynamic question options, time limits, and correct answer keys.
  *
  * @param {string} courseTitle - Name of active course for context
  * @param {Function} onSaveQuiz - Callback (quizData) => void executed when published
@@ -119,15 +115,6 @@ export default function QuizCreatorModal({
     );
   };
 
-  // Fixed: previously only re-clamped correctAnswer when it fell out of
-  // bounds after an option was removed. It never accounted for the array
-  // shifting down when an EARLIER option was deleted — so deleting option
-  // A from [A,B,C,D] with C marked correct (index 2) silently left
-  // correctAnswer=2 pointing at D in the new [B,C,D] array. The quiz would
-  // then grade D as correct and the actual intended answer, C, as wrong,
-  // with zero indication to the teacher. Also now explicitly handles
-  // deleting the option that IS the correct answer, instead of letting a
-  // different option silently inherit "correct" status.
   const handleRemoveOption = (qIndex, optIndex) => {
     setQuestions((prev) =>
       prev.map((q, idx) => {
@@ -242,16 +229,6 @@ export default function QuizCreatorModal({
           </button>
         </div>
 
-        {/*
-          Fixed: footer used to live outside this <form>, so the Publish
-          button's onClick called handleSubmit directly, bypassing native
-          form submission — meaning every `required` attribute on the
-          fields below only did anything if someone submitted via Enter in
-          a text input, never via the actual Publish button. Wrapping
-          header-to-footer in one <form> and making Publish a real
-          type="submit" makes native and manual validation agree instead
-          of one silently doing nothing.
-        */}
         <form
           onSubmit={handleSubmit}
           className="flex flex-col flex-grow overflow-hidden"

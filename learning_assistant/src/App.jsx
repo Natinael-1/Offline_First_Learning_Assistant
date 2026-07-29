@@ -6,6 +6,7 @@ import StudentPortal from "./components/Student/StudentPortal";
 import TeacherPortal from "./components/Teacher/TeacherPortal.jsx";
 import AdminPortal from "./components/Admin/AdminPortal.jsx";
 import ReloadPrompt from "./components/ReloadPrompt.jsx";
+import Footer from "./components/Footer.jsx";
 
 export default function App() {
   const [isOnline, setIsOnline] = useState(true);
@@ -60,17 +61,6 @@ export default function App() {
       clearInterval(intervalId);
     };
   }, []);
-
-  /*useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);*/
 
   const triggerToast = (message, type = "success") => {
     setToast({ message, type });
@@ -157,6 +147,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Footer />
     </BrowserRouter>
   );
 }

@@ -4,17 +4,17 @@ from jose import jwt
 import bcrypt
 from fastapi import HTTPException, status
 
-# SECRET KEY used to sign our JWT tokens (Use a complex random string in production)
+# SECRET KEY used to sign JWT tokens (it is suggested that complex random string in production is good)
 SECRET_KEY = "SUPER_SECRET_KEY_CHANGE_THIS_IN_PROD"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifies a plain password against a stored hash."""
-    # Convert string to bytes
+    
     password_bytes = plain_password.encode('utf-8')
     hashed_bytes = hashed_password.encode('utf-8')
-    # bcrypt.checkpw returns True if they match
+    
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 def get_password_hash(password: str) -> str:

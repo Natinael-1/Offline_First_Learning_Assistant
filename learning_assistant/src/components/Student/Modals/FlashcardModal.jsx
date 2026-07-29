@@ -10,12 +10,6 @@ import {
 } from "lucide-react";
 
 /**
- * FlashcardModal Component
- *
- * Provides an offline active-recall flashcard study interface.
- * Allows students to cycle through deck cards, tap to flip between
- * question (front) and answer (back), and track study progress.
- *
  * @param {Array} flashcards - Array of objects with { front, back } properties
  * @param {Function} onClose - Callback function to close the modal overlay
  */

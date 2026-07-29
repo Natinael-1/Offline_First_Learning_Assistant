@@ -17,11 +17,10 @@ engine = create_engine(
 )
 
 # SessionLocal is used to create actual database sessions
-# Base is inherited by your models later to define tables
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# This allows us to inject the database session into every request
+# This allows to inject the database session into every request
 def get_db():
     db = SessionLocal()
     try:

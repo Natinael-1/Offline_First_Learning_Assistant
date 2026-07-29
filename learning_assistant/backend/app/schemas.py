@@ -5,9 +5,7 @@ from typing import List, Optional, Any
 from .models import UserRole
 
 
-# ==========================================
-# USER & AUTH SCHEMAS
-# ==========================================
+
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -53,9 +51,6 @@ class PreAuthorizedEmailResponse(PreAuthorizedEmailBase):
         from_attributes = True
 
 
-# ==========================================
-# COURSE CONTENT & MATERIAL SCHEMAS
-# ==========================================
 
 class MaterialBase(BaseModel):
     title: str
@@ -108,9 +103,7 @@ class FlashcardResponse(FlashcardBase):
         from_attributes = True
 
 
-# ==========================================
-# QUIZ & OFFLINE SYNC SCHEMAS
-# ==========================================
+
 
 class QuizBase(BaseModel):
     title: str
@@ -152,9 +145,7 @@ class QuizSyncBatch(BaseModel):
     attempts: List[QuizAttemptCreate]
 
 
-# ==========================================
-# COMMUNICATION & COMMUNITY SCHEMAS
-# ==========================================
+
 
 class AnnouncementBase(BaseModel):
     title: str
@@ -207,9 +198,6 @@ class EnrollmentResponse(BaseModel):
         from_attributes = True
 
 
-# ==========================================
-# STUDENT NOTES & LOGS SCHEMAS
-# ==========================================
 
 class StudentNoteBase(BaseModel):
     course_id: int
@@ -262,9 +250,7 @@ class AuditLogResponse(AuditLogBase):
         from_attributes = True
 
 
-# ==========================================
-# COURSE COMPOSITE SCHEMAS
-# ==========================================
+
 
 class CourseBase(BaseModel):
     title: str

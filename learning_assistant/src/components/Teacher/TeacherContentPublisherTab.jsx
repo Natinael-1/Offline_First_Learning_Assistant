@@ -17,32 +17,14 @@ import {
 } from "lucide-react";
 
 /**
- * TeacherContentPublisherTab Component
- *
- * Provides an interface for instructors to publish PDF/Word/text reading
- * guides for a selected course. Real uploaded files are stored in the
- * Cache Storage API (not localStorage) so they can hold real course
- * materials well beyond localStorage's few-MB quota, and remain available
- * offline via the app's existing service worker.
+ 
  *
  * @param {Object} activeCourse - Active course object containing materials & worksheets
  * @param {Function} onAddMaterial - Callback to attach a new material to the course
  */
 
-// Deliberately a separate cache from vite.config.js's Workbox
-// "course-materials-cache" (which only auto-caches real network fetches
-// matching *.pdf/png/jpg/jpeg/svg, and has maxEntries: 50 with LRU
-// eviction). Teacher uploads never go through a network fetch, and
-// sharing that cache would risk an upload being silently evicted once
-// entry count crosses 50. This cache has no expiration policy — it
-// persists until quota pressure or an explicit cache.delete().
 const MATERIALS_CACHE_NAME = "user-uploaded-materials";
 
-// Cache Storage quota is tied to the Storage API's overall per-origin
-// allocation (typically hundreds of MB+, depending on available disk) —
-// not localStorage's ~5-10MB shared ceiling. Still capped, not unlimited,
-// since low-end devices in low-connectivity contexts may be storage
-// constrained too.
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
 const ACCEPTED_FILE_TYPES = ".pdf,.doc,.docx,.txt";
 
@@ -52,11 +34,6 @@ const formatFileSize = (bytes) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-// Stores the real File/Blob in Cache Storage under a synthetic request URL
-// (it never needs to resolve to a real network resource — cache.put just
-// needs a Request-or-URL key). Returns that key so it can be saved as
-// lightweight metadata on the material object (which does go into
-// localStorage via course state) instead of the file bytes themselves.
 const cacheMaterialFile = async (materialId, file) => {
   if (!("caches" in window)) {
     throw new Error(
@@ -75,8 +52,6 @@ const cacheMaterialFile = async (materialId, file) => {
   return cacheKey;
 };
 
-// Retrieves a cached file as an object URL for preview/download. Caller
-// is responsible for URL.revokeObjectURL() when done with it.
 const getMaterialFileURL = async (cacheKey) => {
   if (!cacheKey || !("caches" in window)) return null;
   const cache = await caches.open(MATERIALS_CACHE_NAME);
@@ -230,31 +205,6 @@ export default function TeacherContentPublisherTab({
     };
   }, []);
 
-  /*const handleFileChange = (e) => {
-    const file = e.target.files?.[0] || null;
-    setFileError("");
-
-    if (!file) {
-      setSelectedFile(null);
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setFileError(
-        `"${file.name}" is ${formatFileSize(file.size)} — over the ${formatFileSize(
-          MAX_FILE_SIZE_BYTES,
-        )} limit for offline device caching.`,
-      );
-      e.target.value = "";
-      setSelectedFile(null);
-      return;
-    }
-
-    setSelectedFile(file);
-    if (!materialTitle.trim()) {
-      setMaterialTitle(file.name.replace(/\.[^/.]+$/, ""));
-    }
-  };*/
   const handleFileChange = (e) => {
     const file = e.target.files?.[0] || null;
     setFileError("");
@@ -298,12 +248,6 @@ export default function TeacherContentPublisherTab({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  /*const clearSelectedFile = () => {
-    setSelectedFile(null);
-    setFileError("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };*/
-
   const handlePublishSubmit = async (e) => {
     e.preventDefault();
     if (!activeCourse || isPublishing) return;
@@ -320,9 +264,6 @@ export default function TeacherContentPublisherTab({
     const materialId = `mat_${activeCourse.id}_${Date.now()}`;
 
     try {
-      // Do the real caching work first so any failure (unsupported
-      // browser, quota exceeded) surfaces immediately rather than after
-      // the simulated "publishing" delay below.
       const cacheKey = await cacheMaterialFile(materialId, selectedFile);
 
       const trimmedTitle = materialTitle.trim();
@@ -341,8 +282,7 @@ export default function TeacherContentPublisherTab({
         content: guideContent.trim(),
         fileName: selectedFile.name,
         fileMimeType: selectedFile.type,
-        // Only the cache key is stored here (and persisted to
-        // localStorage via course state) — never the file bytes.
+
         fileCacheKey: cacheKey,
         fileData: fileData,
       };

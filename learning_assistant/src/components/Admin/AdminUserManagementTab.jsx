@@ -1,13 +1,5 @@
 import { useState } from "react";
 
-/*
-Check,
-AlertCircle,
-Filter,
-Shield,
-XCircle,
-  */
-
 import {
   Users,
   UserCheck,
@@ -25,11 +17,7 @@ import {
 } from "lucide-react";
 
 /**
- * AdminUserManagementTab Component
- *
- * Manages institutional access control, pending instructor verification,
- * pre-authorized email rosters, and international phone number registries
- * required for cell tower SMS broadcasts.
+ 
  *
  * @param {Array} preAuthorizedUsers - Roster of pre-approved email entries
  * @param {Array} registeredUsers - Roster of registered user profiles
@@ -455,7 +443,7 @@ export default function AdminUserManagementTab({
         </div>
       )}
 
-      {/* SECTION 4: VIEW 3 - PHONE NUMBER REGISTRY (SMS CARRIER FOCUS) */}
+      {/* SECTION 4: VIEW 3 - PHONE NUMBER REGISTRY (SMSFOCUS) */}
       {activeSubView === "phones" && (
         <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6 animate-fadeIn">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">

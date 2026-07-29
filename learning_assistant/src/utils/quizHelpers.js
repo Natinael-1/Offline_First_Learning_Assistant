@@ -1,5 +1,5 @@
 /**
- *
+ 
  * @param {Object} quiz - The raw quiz object from the API
  * @returns {Array} List of question objects
  */
