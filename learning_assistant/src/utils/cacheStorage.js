@@ -6,7 +6,14 @@
 const CACHE_NAME = "user-uploaded-materials";
 
 // Standardized synthetic URL format for caching materials by ID
-const getMaterialCacheUrl = (materialId) => `/materials/mat_${materialId}`;
+/*const getMaterialCacheUrl = (materialId) => `/materials/mat_${materialId}`;*/
+// Standardized synthetic URL format for caching materials by ID
+export const getMaterialCacheUrl = (materialId) => {
+  if (!materialId) return "/materials/mat_unknown";
+  const idStr = String(materialId);
+  const cleanId = idStr.startsWith("mat_") ? idStr : `mat_${idStr}`;
+  return `/materials/${cleanId}`;
+};
 
 /**
  * Saves a PDF file (Base64 string or Blob) into Cache Storage.
