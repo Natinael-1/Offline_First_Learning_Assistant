@@ -24,6 +24,44 @@ export default function App() {
   }, [currentUser]);
 
   useEffect(() => {
+    // 1. Listen for browser hardware events
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // 2. Active Health Check: Pings backend to confirm real network reachability
+    const checkRealConnection = async () => {
+      if (!navigator.onLine) {
+        setIsOnline(false);
+        return;
+      }
+
+      try {
+        const res = await fetch("http://localhost:8000/api/health", {
+          method: "GET",
+          cache: "no-store",
+        });
+        setIsOnline(res.ok);
+      } catch (err) {
+        console.error(`Error occured: ${err}`);
+        setIsOnline(false);
+      }
+    };
+
+    // Run check immediately on mount and every 10 seconds
+    checkRealConnection();
+    const intervalId = setInterval(checkRealConnection, 10000);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  /*useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener("online", handleOnline);
@@ -32,7 +70,7 @@ export default function App() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, []);*/
 
   const triggerToast = (message, type = "success") => {
     setToast({ message, type });

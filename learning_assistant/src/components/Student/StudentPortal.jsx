@@ -26,6 +26,23 @@ import {
 //API end points
 import { coursesAPI, quizzesAPI } from "../../services/api";
 
+// Removes heavy PDF binary strings before saving to localStorage
+function sanitizeCoursesForStorage(coursesList) {
+  if (!Array.isArray(coursesList)) return [];
+
+  return coursesList.map((course) => ({
+    ...course,
+    materials: Array.isArray(course.materials)
+      ? course.materials.map((mat) => {
+          const cleanMaterial = { ...mat };
+          delete cleanMaterial.file_data;
+          delete cleanMaterial.fileData;
+          return cleanMaterial;
+        })
+      : [],
+  }));
+}
+
 // Seed Initial Mock Courses Data (Matches PostgreSQL Schema)
 const INITIAL_COURSES = [
   {
@@ -334,9 +351,23 @@ export default function StudentPortal({
   // Comment Input State
 
   // Local Storage Synchronization Hooks
-  useEffect(() => {
+  /*useEffect(() => {
     localStorage.setItem(
       "student_cached_courses",
+      JSON.stringify(cachedCourseIds),
+    );
+  }, [cachedCourseIds]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "student_personal_notes",
+      JSON.stringify(personalNotes),
+    );
+  }, [personalNotes]);*/
+
+  useEffect(() => {
+    localStorage.setItem(
+      "student_cached_course_ids", // 👈 Updated key name to prevent collision
       JSON.stringify(cachedCourseIds),
     );
   }, [cachedCourseIds]);
@@ -521,17 +552,74 @@ export default function StudentPortal({
   });*/
 
   // 1. Fetch Courses on Load
-  useEffect(() => {
+  /*useEffect(() => {
     async function loadCourses() {
       try {
         const data = await coursesAPI.getAllCourses();
+
         setCourses(data);
         localStorage.setItem("student_cached_courses", JSON.stringify(data));
       } catch (err) {
         console.error(`Error ocurred: ${err}`);
         console.warn("FastAPI unreachable, loading cached data.");
-        const cached = localStorage.getItem("student_cached_courses");
-        if (cached) setCourses(JSON.parse(cached));
+        setCourses(INITIAL_COURSES);
+      }
+    }
+    loadCourses();
+  }, []);*/
+  /*useEffect(() => {
+    async function loadCourses() {
+      try {
+        const data = await coursesAPI.getAllCourses();
+        if (Array.isArray(data) && data.length > 0) {
+          setCourses(data);
+          localStorage.setItem("student_cached_courses", JSON.stringify(data));
+        }
+      } catch (err) {
+        console.error(`Error Ocurred: ${err}`);
+        console.warn(
+          "FastAPI unreachable, loading cached data from LocalStorage.",
+        );
+        const savedCache = localStorage.getItem("student_cached_courses");
+        if (savedCache) {
+          try {
+            setCourses(JSON.parse(savedCache));
+          } catch (e) {
+            console.error("Failed to parse cached courses:", e);
+          }
+        }
+      }
+    }
+    loadCourses();
+  }, []);*/
+
+  useEffect(() => {
+    async function loadCourses() {
+      try {
+        const data = await coursesAPI.getAllCourses();
+        if (Array.isArray(data) && data.length > 0) {
+          setCourses(data); // Full data (with file_data) stays in React memory!
+
+          // Save ONLY the lightweight sanitized data to localStorage (~20 KB)
+          const sanitizedData = sanitizeCoursesForStorage(data);
+          localStorage.setItem(
+            "student_cached_courses",
+            JSON.stringify(sanitizedData),
+          );
+        }
+      } catch (err) {
+        console.error(`Error Occurred: ${err}`);
+        console.warn(
+          "FastAPI unreachable, loading cached data from LocalStorage.",
+        );
+        const savedCache = localStorage.getItem("student_cached_courses");
+        if (savedCache) {
+          try {
+            setCourses(JSON.parse(savedCache));
+          } catch (e) {
+            console.error("Failed to parse cached courses:", e);
+          }
+        }
       }
     }
     loadCourses();
@@ -628,7 +716,7 @@ export default function StudentPortal({
             )}
             <div className="flex flex-col">
               <span>
-                {isOnlineSimulated ? "Your are Online" : "You are Offline"}
+                {isOnlineSimulated ? "You are Online" : "You are Offline"}
               </span>
               {pendingSyncCount > 0 && (
                 <span className="text-[10px] font-medium text-amber-700">

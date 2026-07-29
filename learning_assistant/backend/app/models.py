@@ -1,6 +1,6 @@
 import datetime
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, JSON
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum, JSON
 from sqlalchemy.orm import relationship, backref
 from .database import Base
 
@@ -67,8 +67,9 @@ class Material(Base):
     title = Column(String, nullable=False)
     file_type = Column(String)
     size = Column(String)
-    read_time = Column(String, default="15 min")  # Added to match DocumentReaderModal & ContentPublisher
-    content = Column(String)  # Reading guide text or Base64 file payload
+    read_time = Column(String, default="15 min")
+    content = Column(Text, nullable=True)    # Reading guide text summary
+    file_data = Column(Text, nullable=True)  # Base64 encoded file payload (PDF, DOCX)
 
     course = relationship("Course", back_populates="materials")
 
@@ -151,7 +152,7 @@ class SMSLog(Base):
     title = Column(String)
     course_id = Column(Integer, ForeignKey("courses.id"))
     recipient_count = Column(Integer)
-    segments_per_msg = Column(Integer, default=1)  # Added to match AdminSMSGatewayTab broadcast log table
+    segments_per_msg = Column(Integer, default=1)
     credits_deducted = Column(Integer)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -185,7 +186,7 @@ class AuditLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     actor_id = Column(Integer, ForeignKey("users.id"))
-    action = Column(String, nullable=False)  # e.g., 'APPROVE_TEACHER', 'PRE_AUTHORIZE_USERS'
+    action = Column(String, nullable=False)
     target = Column(String)
     details = Column(String)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)

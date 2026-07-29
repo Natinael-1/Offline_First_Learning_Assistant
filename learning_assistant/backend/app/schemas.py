@@ -63,6 +63,7 @@ class MaterialBase(BaseModel):
     size: Optional[str] = "0 MB"
     read_time: Optional[str] = "15 min"
     content: Optional[str] = None
+    file_data: Optional[str] = None
 
 class MaterialCreate(MaterialBase):
     pass
@@ -70,6 +71,7 @@ class MaterialCreate(MaterialBase):
 class MaterialResponse(MaterialBase):
     id: int
     course_id: int
+    
 
     class Config:
         from_attributes = True

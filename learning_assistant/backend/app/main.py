@@ -78,3 +78,6 @@ def read_root():
         "message": "EduSync API is running",
         "docs": "Visit /docs for Interactive Swagger Documentation"
     }
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok"}

@@ -219,6 +219,7 @@ export default function TeacherContentPublisherTab({
   const [fileError, setFileError] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(null);
+  const [fileData, setFileData] = useState(null);
 
   const publishTimerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -229,7 +230,7 @@ export default function TeacherContentPublisherTab({
     };
   }, []);
 
-  const handleFileChange = (e) => {
+  /*const handleFileChange = (e) => {
     const file = e.target.files?.[0] || null;
     setFileError("");
 
@@ -253,13 +254,55 @@ export default function TeacherContentPublisherTab({
     if (!materialTitle.trim()) {
       setMaterialTitle(file.name.replace(/\.[^/.]+$/, ""));
     }
+  };*/
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setFileError("");
+
+    if (!file) {
+      setSelectedFile(null);
+      setFileData(null);
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setFileError(
+        `"${file.name}" is ${formatFileSize(file.size)} — over the ${formatFileSize(
+          MAX_FILE_SIZE_BYTES,
+        )} limit for offline device caching.`,
+      );
+      e.target.value = "";
+      setSelectedFile(null);
+      setFileData(null);
+      return;
+    }
+
+    // 1. Read the physical file into a Base64 text string
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setFileData(uploadEvent.target.result); // e.g. "data:application/pdf;base64,JVBERi0xLjQN..."
+    };
+    reader.readAsDataURL(file);
+
+    // 2. Set file metadata
+    setSelectedFile(file);
+    if (!materialTitle.trim()) {
+      setMaterialTitle(file.name.replace(/\.[^/.]+$/, ""));
+    }
   };
 
   const clearSelectedFile = () => {
     setSelectedFile(null);
+    setFileData(null);
     setFileError("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  /*const clearSelectedFile = () => {
+    setSelectedFile(null);
+    setFileError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };*/
 
   const handlePublishSubmit = async (e) => {
     e.preventDefault();
@@ -301,6 +344,7 @@ export default function TeacherContentPublisherTab({
         // Only the cache key is stored here (and persisted to
         // localStorage via course state) — never the file bytes.
         fileCacheKey: cacheKey,
+        fileData: fileData,
       };
 
       publishTimerRef.current = setTimeout(() => {

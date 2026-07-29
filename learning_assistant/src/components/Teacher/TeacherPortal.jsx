@@ -28,6 +28,22 @@ import QuizCreatorModal from "./Modals/QuizCreatorModal";
 import StudentScoreDetailsModal from "./Modals/StudentScoreDetailsModal";
 
 import { coursesAPI, quizzesAPI } from "../../services/api";
+import { savePDFToCache } from "../../utils/cacheStorage";
+
+function sanitizeCoursesForStorage(coursesList) {
+  if (!Array.isArray(coursesList)) return [];
+  return coursesList.map((course) => ({
+    ...course,
+    materials: Array.isArray(course.materials)
+      ? course.materials.map((mat) => {
+          const cleanMaterial = { ...mat };
+          delete cleanMaterial.file_data;
+          delete cleanMaterial.fileData;
+          return cleanMaterial;
+        })
+      : [],
+  }));
+}
 
 const INITIAL_TEACHER_COURSES = [
   {
@@ -208,8 +224,14 @@ export default function TeacherPortal({
   const notificationTimerRef = useRef(null);
 
   useEffect(() => {
-    localStorage.setItem("teacher_courses", JSON.stringify(courses));
+    // Strip heavy file_data Base64 payloads before caching to localStorage
+    const sanitizedCourses = sanitizeCoursesForStorage(courses);
+    localStorage.setItem("teacher_courses", JSON.stringify(sanitizedCourses));
   }, [courses]);
+
+  /*useEffect(() => {
+    localStorage.setItem("teacher_courses", JSON.stringify(courses));
+  }, [courses]);*/
 
   useEffect(() => {
     localStorage.setItem(
@@ -217,6 +239,13 @@ export default function TeacherPortal({
       JSON.stringify(teacherDrafts),
     );
   }, [teacherDrafts]);
+
+  /*useEffect(() => {
+    localStorage.setItem(
+      "teacher_pending_drafts",
+      JSON.stringify(teacherDrafts),
+    );
+  }, [teacherDrafts]);*/
 
   const triggerNotification = useCallback((text, type = "success") => {
     if (notificationTimerRef.current) {
@@ -359,7 +388,7 @@ export default function TeacherPortal({
 
   // 2. Background Sync Engine: Reconnection listener
   //const prevOnlineRef = useRef(isOnlineSimulated);
-  const handleFlushTeacherDrafts = useCallback(async () => {
+  /*const handleFlushTeacherDrafts = useCallback(async () => {
     if (teacherDrafts.length === 0) return;
     setIsSyncing(true);
 
@@ -425,7 +454,90 @@ export default function TeacherPortal({
         "amber",
       );
     }
-  }, [teacherDrafts, currentUser.id, triggerNotification]);
+  }, [teacherDrafts, currentUser.id, triggerNotification]);*/
+  // Loop prevention flag
+  const isSyncInProgressRef = useRef(false);
+  const handleFlushTeacherDrafts = useCallback(async () => {
+    if (
+      teacherDrafts.length === 0 ||
+      isSyncInProgressRef.current ||
+      !isOnlineSimulated
+    )
+      return;
+
+    isSyncInProgressRef.current = true;
+    setIsSyncing(true);
+
+    const teacherId = currentUser.id || 1;
+    let syncedCount = 0;
+    const remainingDrafts = [];
+
+    // Make a copy of current drafts to process
+    const draftsToProcess = [...teacherDrafts];
+
+    for (const draft of draftsToProcess) {
+      try {
+        if (draft.type === "CREATE_COURSE") {
+          await coursesAPI.createCourse(draft.payload, teacherId);
+          syncedCount++;
+        } else if (draft.type === "DELETE_COURSE") {
+          await coursesAPI.deleteCourse(draft.courseId);
+          syncedCount++;
+        } else if (draft.type === "ADD_MATERIAL") {
+          await coursesAPI.addMaterial(draft.courseId, draft.payload);
+          syncedCount++;
+        } else if (draft.type === "ADD_QUIZ") {
+          await quizzesAPI.createQuiz(draft.courseId, draft.payload);
+          syncedCount++;
+        } else if (draft.type === "ADD_ANNOUNCEMENT") {
+          await coursesAPI.postAnnouncement(
+            draft.courseId,
+            teacherId,
+            draft.payload,
+          );
+          syncedCount++;
+        } else if (draft.type === "ADD_DISCUSSION") {
+          await coursesAPI.postDiscussion(
+            draft.courseId,
+            teacherId,
+            draft.payload,
+          );
+          syncedCount++;
+        }
+      } catch (err) {
+        console.error("Failed to sync draft item:", draft, err);
+        remainingDrafts.push(draft);
+      }
+    }
+
+    setTeacherDrafts(remainingDrafts);
+    setIsSyncing(false);
+
+    if (syncedCount > 0) {
+      triggerNotification(
+        `Synced ${syncedCount} offline item(s) to server!`,
+        "success",
+      );
+      try {
+        const freshCourses = await coursesAPI.getAllCourses();
+        if (Array.isArray(freshCourses)) {
+          setCourses(freshCourses);
+        }
+      } catch (e) {
+        console.error("Could not refresh courses post-sync:", e);
+      }
+    } else if (remainingDrafts.length > 0) {
+      triggerNotification(
+        "Draft sync skipped/failed. Check backend logs.",
+        "amber",
+      );
+    }
+
+    // Release sync guard after a small delay to prevent rapid looping
+    setTimeout(() => {
+      isSyncInProgressRef.current = false;
+    }, 2000);
+  }, [teacherDrafts, isOnlineSimulated, currentUser.id, triggerNotification]);
   // Trigger sync automatically whenever device is online and drafts exist
   useEffect(() => {
     if (isOnlineSimulated && teacherDrafts.length > 0 && !isSyncing) {
@@ -649,6 +761,86 @@ export default function TeacherPortal({
   };*/
 
   const handleAddMaterial = async (courseId, material) => {
+    // 1. Create a temporary ID and extract the raw file payload
+    const tempId = material.id || `temp_${Date.now()}`;
+    const rawFilePayload = material.fileData || material.file_data || null;
+
+    // 2. Cache the heavy PDF binary in Cache Storage for offline reading
+    if (rawFilePayload) {
+      try {
+        await savePDFToCache(tempId, rawFilePayload);
+      } catch (cacheErr) {
+        console.error(
+          "Failed to write uploaded PDF to Cache Storage:",
+          cacheErr,
+        );
+      }
+    }
+
+    // Enrich the material object with a Cache Storage lookup key
+    const enrichedMaterial = {
+      ...material,
+      id: tempId,
+      fileCacheKey: `/materials/mat_${tempId}`,
+    };
+
+    // 3. Optimistic Update (Immediate UI response in React state)
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.id === courseId
+          ? { ...c, materials: [enrichedMaterial, ...(c.materials || [])] }
+          : c,
+      ),
+    );
+
+    // 4. Prepare Payload for FastAPI Backend
+    const apiPayload = {
+      title: material.title,
+      file_type: material.type || "pdf",
+      size: material.size || "1 MB",
+      read_time: material.readTime || "15 min",
+      content: material.content,
+      file_data: rawFilePayload, // Transmitted safely over HTTP to FastAPI
+    };
+
+    // Helper to strip heavy Base64 strings before saving drafts to localStorage
+    const createSanitizedDraft = (matPayload) => {
+      const cleanPayload = { ...matPayload };
+      delete cleanPayload.fileData;
+      delete cleanPayload.file_data;
+      return cleanPayload;
+    };
+
+    const sanitizedDraft = {
+      type: "ADD_MATERIAL",
+      courseId,
+      payload: createSanitizedDraft(enrichedMaterial),
+    };
+
+    // 5. API Sync Logic
+    if (isOnlineSimulated) {
+      try {
+        await coursesAPI.addMaterial(courseId, apiPayload);
+        triggerNotification(
+          `Material "${material.title}" synced to cloud!`,
+          "success",
+        );
+      } catch (err) {
+        console.error("Sync failed, queuing draft:", err);
+        setTeacherDrafts((prev) => [...prev, sanitizedDraft]);
+        triggerNotification(
+          "Connection lost. Saved locally as draft.",
+          "amber",
+        );
+      }
+    } else {
+      // 6. Offline Logic
+      setTeacherDrafts((prev) => [...prev, sanitizedDraft]);
+      triggerNotification("Saved locally (Offline Mode).", "amber");
+    }
+  };
+
+  /*const handleAddMaterial = async (courseId, material) => {
     // 1. Optimistic Update (Immediate UI response)
     setCourses((prev) =>
       prev.map((c) =>
@@ -663,6 +855,7 @@ export default function TeacherPortal({
       size: material.size || "1 MB",
       read_time: material.readTime || "15 min",
       content: material.content,
+      file_data: material.fileData || material.file_data || null,
     };
 
     // 3. API Sync Logic
@@ -692,7 +885,7 @@ export default function TeacherPortal({
       ]);
       triggerNotification("Saved locally (Offline Mode).", "amber");
     }
-  };
+  };*/
 
   /*const handleAddMaterial = async (courseId, material) => {
     setCourses((prev) =>
