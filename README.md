@@ -38,8 +38,6 @@ EduHelp uses modern Progressive Web App (PWA) capabilities and a multi-tier cach
 For testing and evaluation convenience, the system automatically seeds the following pre-authorized test email addresses on initial boot:  
 The credentials for already created accounts for easy testing is provided in COMMENT SECTION on CANVAS.
 
----
-
 ## How to Access the Application
 
 ### 🔗 Live Production Deployment
