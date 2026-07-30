@@ -35,7 +35,8 @@ EduHelp uses modern Progressive Web App (PWA) capabilities and a multi-tier cach
 
 ## Pre-Authorized Demo Credentials
 
-For testing and evaluation convenience, the system automatically seeds the following pre-authorized test accounts on initial boot:
+For testing and evaluation convenience, the system automatically seeds the following pre-authorized test email addresses on initial boot:  
+The credentials for already created accounts for easy testing is provided in COMMENT SECTION on CANVAS.
 
 | Role        | Email Address          | Default Phone   |
 | :---------- | :--------------------- | :-------------- |
@@ -49,8 +50,8 @@ For testing and evaluation convenience, the system automatically seeds the follo
 
 ### 🔗 Live Production Deployment
 
-- **Web Application URL:** [https://YOUR_VERCEL_APP_URL.vercel.app](https://YOUR_VERCEL_APP_URL.vercel.app)
-- **Interactive API Documentation (Swagger):** [https://YOUR_RENDER_BACKEND_URL.onrender.com/docs](https://YOUR_RENDER_BACKEND_URL.onrender.com/docs)
+- **Web Application URL:** [https://offline-first-learning-assistant.vercel.app/](https://offline-first-learning-assistant.vercel.app/)
+- **Interactive API Documentation (Swagger):** [https://offline-first-learning-assistant.onrender.com/docs](https://offline-first-learning-assistant.onrender.com/docs)
 
 ---
 
