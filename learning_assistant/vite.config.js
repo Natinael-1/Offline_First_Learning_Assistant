@@ -17,8 +17,8 @@ export default defineConfig({
         "assets/*.pdf",
       ],
       manifest: {
-        name: "EduSync Offline-First Learning Assistant",
-        short_name: "EduSync",
+        name: "EduHelp Offline-First Learning Assistant",
+        short_name: "EduHelp",
         description:
           "Zero-Data Learning Platform for Classrooms With or Without Connection",
         theme_color: "#0f172a",
