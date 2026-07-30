@@ -1,16 +1,76 @@
-# React + Vite
+# EduHelp — Offline-First Learning Assistant
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **Progressive Web Application (PWA) designed to assist learning with or without an active internet connection.**
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 📖 About EduHelp
 
-## React Compiler
+**EduHelp** is an offline-first learning platform built for students and educators. It allows users to browse course materials, read lessons, and attempt quizzes seamlessly—even when completely disconnected from the internet.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+When an internet connection is available, the application automatically synchronizes quiz attempts, course progress, and new educational content with the cloud backend server.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## ⚙️ How It Works
+
+EduHelp uses modern Progressive Web App (PWA) capabilities and a multi-tier caching architecture:
+
+1. **Service Worker Cache:** Stores static assets (HTML, CSS, JavaScript, icons, and UI components) directly in the browser for instant offline loading.
+2. **Local Data Persistence:** Saves course content, offline quiz submissions, and user state locally using browser storage APIs.
+3. **Background Synchronization:** Detects when network connectivity returns and silently transmits cached quiz results and student progress logs to the FastAPI server.
+4. **REST API Communication:** Connects to a FastAPI backend powered by an object-relational database (SQLite locally, PostgreSQL in production).
+
+---
+
+## System Roles & Capabilities
+
+| Role        | Capabilities & Actions                                                                                             |
+| :---------- | :----------------------------------------------------------------------------------------------------------------- |
+| **Admin**   | Manages pre-authorized email directories, registers user accounts, and monitors platform activity and SMS budgets. |
+| **Teacher** | Creates course modules, uploads educational content, publishes quizzes, and tracks student performance analytics.  |
+| **Student** | Accesses enrolled courses, reads lesson notes offline, completes quizzes, and views progress scores.               |
+
+---
+
+## Pre-Authorized Demo Credentials
+
+For testing and evaluation convenience, the system automatically seeds the following pre-authorized test accounts on initial boot:
+
+| Role        | Email Address          | Default Phone   |
+| :---------- | :--------------------- | :-------------- |
+| **Admin**   | `admin@admin.edu`      | `+250788000111` |
+| **Teacher** | `amina@teacher.edu`    | `+250788123456` |
+| **Student** | `natinael@student.edu` | `+250788555666` |
+
+---
+
+## How to Access the Application
+
+### 🔗 Live Production Deployment
+
+- **Web Application URL:** [https://YOUR_VERCEL_APP_URL.vercel.app](https://YOUR_VERCEL_APP_URL.vercel.app)
+- **Interactive API Documentation (Swagger):** [https://YOUR_RENDER_BACKEND_URL.onrender.com/docs](https://YOUR_RENDER_BACKEND_URL.onrender.com/docs)
+
+---
+
+## Local Setup & Execution Guide
+
+Follow these step-by-step instructions to run EduHelp locally on your machine:
+
+### Prerequisites
+
+Ensure you have installed:
+
+- **Node.js** (v18.0 or higher) & `npm`
+- **Python** (v3.10 or higher)
+- **Git**
+
+---
+
+### 1️⃣ Clone the Repository
+
+```bash
+git clone Repo
+cd root-folder
+```
