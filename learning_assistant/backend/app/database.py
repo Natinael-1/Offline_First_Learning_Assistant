@@ -1,4 +1,4 @@
-import os
+"""import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -21,6 +21,40 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # This allows to inject the database session into every request
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+"""
+import os
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+# 1. Load local .env file (ignored in production)
+load_dotenv()
+
+# 2. Get database URL (defaults to SQLite for local development)
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
+
+# 3. Patch connection strings starting with "postgres://" (Render/Heroku format)
+#    Neon gives "postgresql://", but this safety net ensures zero crash risk!
+if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# 4. Create engine (SQLite requires check_same_thread=False, Postgres does not)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, 
+    connect_args={"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {}
+)
+
+# 5. Session and Base setup
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# 6. Database dependency for FastAPI routes
 def get_db():
     db = SessionLocal()
     try:

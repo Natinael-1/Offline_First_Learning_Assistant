@@ -373,8 +373,8 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
         {activeTab === "home" && (
           <div className="space-y-12">
             <div className="text-center max-w-3xl mx-auto space-y-6">
-              <span className="bg-indigo-100 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-bold uppercase tracking-wider">
-                An ALU Software Engineering Project
+              <span className="bg-indigo-100 text-indigo-700 text-3xl px-3.5 py-1.5 rounded-full font-bold uppercase tracking-wider">
+                ALU
               </span>
               <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">
                 Empowering Classrooms <br />

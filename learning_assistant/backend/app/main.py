@@ -1,4 +1,5 @@
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -6,19 +7,35 @@ from .database import engine, Base, SessionLocal
 from . import models
 from .routers import auth, admin, courses, quizzes
 
+# Create database tables automatically if they don't exist
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="EduSync Backend API")
+app = FastAPI(
+    title="EduSync Backend API",
+    description="Zero-Data Learning Platform API",
+    version="1.0.0"
+)
 
+# 💡 Explicit list of local origins (both localhost and 127.0.0.1)
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:4173",
+    "http://127.0.0.1:4173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
+
+# Append custom frontend domain from environment variables if specified
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    origins.append(frontend_url)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins,  # 👈 Explicit origins list (No wildcards)
+    # 💡 Regex automatically matches any Vercel deployment URL cleanly!
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,6 +76,9 @@ def seed_preauthorized_directory():
                 db.add(pre_auth)
         
         db.commit()
+    except Exception as e:
+        print(f"⚠️ Initial database seeding warning: {e}")
+        db.rollback()
     finally:
         db.close()
 
@@ -66,6 +86,7 @@ def seed_preauthorized_directory():
 seed_preauthorized_directory()
 
 
+# Register API Routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(courses.router, prefix="/api/courses", tags=["courses"])
@@ -78,6 +99,7 @@ def read_root():
         "message": "EduSync API is running",
         "docs": "Visit /docs for Interactive Swagger Documentation"
     }
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
