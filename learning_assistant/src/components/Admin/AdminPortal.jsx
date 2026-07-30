@@ -1,19 +1,5 @@
 import { useState, useEffect } from "react";
 
-/*
-ShieldCheck,
-AlertCircle,
-Plus,
-RefreshCw,
-FileText,
-Key,
-Radio,
-Sparkles,
-UserCheck,
-Activity,
-Server,
-
-*/
 import {
   Users,
   Smartphone,
@@ -212,11 +198,7 @@ const DEFAULT_AUDIT_LOGS = [
 ];
 
 /**
- * AdminPortal Component
- *
- * Top-level coordinator for school administrators, IT managers, and system governors.
- * Manages user access, phone registries, SMS carrier API credits, and browser disk diagnostics.
- *
+ 
  * @param {Object} currentUser - Currently logged in admin profile
  * @param {boolean} isOnlineSimulated - Simulated connectivity status
  * @param {Function} onLogout - Callback () => void to sign out
@@ -488,24 +470,6 @@ export default function AdminPortal({
     );
   };
 
-  // 6. Execute Non-Destructive Browser Storage Sanitizer
-  /*const handleSanitizeStorage = () => {
-    // Clear temporary render caches while protecting gradebooks, pre-approved rosters, and credentials
-    const itemsCleared = ["teacher_pending_drafts", "student_draft_previews"];
-    itemsCleared.forEach((key) => localStorage.removeItem(key));
-
-    appendAuditLog(
-      "STORAGE_SANITIZATION",
-      "Browser LocalStorage",
-      "Executed 1-Click Sanitizer: Cleared unneeded temporary previews while preserving student gradebooks and auth tokens.",
-    );
-
-    triggerNotification(
-      "Browser cache sanitized successfully! Freed up storage space.",
-      "success",
-    );
-  };*/
-
   const totalStudents = preAuthorizedUsers.filter(
     (u) => u.role === "student",
   ).length;
@@ -570,7 +534,7 @@ export default function AdminPortal({
             <div className="flex flex-col">
               <span>{isOnlineSimulated ? "Online" : "Offline Mode"}</span>
               <span className="text-[10px] font-medium text-black">
-                Africa's Talking API: {smsGateway.creditBalance} Credits
+                SMS API: Credits
               </span>
             </div>
           </div>
@@ -627,7 +591,7 @@ export default function AdminPortal({
           }`}
         >
           <Smartphone className="h-4 w-4" />
-          <span>SMS Gateway Hub ({smsGateway.creditBalance} Units)</span>
+          <span>SMS Gateway</span>
         </button>
 
         {/*<button
@@ -684,15 +648,6 @@ export default function AdminPortal({
               />
             )}
           </div>
-
-          {/* TAB 4: SYSTEM METRICS, LOCALSTORAGE SANITIZER & AUDIT LOGS *
-          {activeTab === "storage" && (
-            <AdminStorageHealthTab
-              auditLogs={auditLogs}
-              onSanitizeStorage={handleSanitizeStorage}
-              onSelectLogDetail={(log) => setSelectedLogDetail(log)}
-            />
-          )}*/}
 
           {/* MODAL 1: PRE-AUTHORIZE EMAIL ADDRESSES & PHONE NUMBERS */}
           {isPreAuthModalOpen && (
