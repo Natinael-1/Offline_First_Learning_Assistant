@@ -33,16 +33,10 @@ EduHelp uses modern Progressive Web App (PWA) capabilities and a multi-tier cach
 
 ---
 
-## Pre-Authorized Demo Credentials
+## Pre-Authorized Demo Credentials Are Provided in CANVAS COMMENT SECTION
 
 For testing and evaluation convenience, the system automatically seeds the following pre-authorized test email addresses on initial boot:  
 The credentials for already created accounts for easy testing is provided in COMMENT SECTION on CANVAS.
-
-| Role        | Email Address          | Default Phone   |
-| :---------- | :--------------------- | :-------------- |
-| **Admin**   | `admin@admin.edu`      | `+250788000111` |
-| **Teacher** | `amina@teacher.edu`    | `+250788123456` |
-| **Student** | `natinael@student.edu` | `+250788555666` |
 
 ---
 
