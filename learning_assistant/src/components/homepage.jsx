@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { authAPI } from "../services/api";
 
-
 // Default seed accounts to ensure seamless offline testing
 const DEFAULT_SEED_USERS = [
   {
@@ -189,7 +188,7 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") {
-      console.log("User installed EduSync PWA");
+      console.log("User installed EduHelp PWA");
     }
     setDeferredPrompt(null);
     setCanInstall(false);
@@ -289,11 +288,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
     setResetPasswordEmail("");
   };
 
-  /*const handleResetDemoAccounts = () => {
-    persistUsers(DEFAULT_SEED_USERS);
-    triggerToast("Demo accounts restored! Login using password123", "success");
-  };*/
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between font-sans">
       {/* Toast Alert System */}
@@ -389,10 +383,10 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                 </span>
               </h1>
               <p className="text-base text-slate-600 max-w-xl mx-auto leading-relaxed">
-                Welcome to the official School Portal for the Offline-First
-                Learning Assistant. Sign up using your school-provided email to
-                access textbooks, assignments, and quizzes locally on your
-                browser.
+                Welcome to your study assistant for the Offline-First resource
+                access and use. Sign up or login using your school-provided
+                email to access textbooks, assignments, and quizzes teachers
+                shared locally on your browser.
               </p>
 
               <div className="flex justify-center items-center gap-4 pt-2">
@@ -423,12 +417,13 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                   <Smartphone className="h-5 w-5" />
                 </div>
                 <h3 className="font-bold text-lg text-slate-900">
-                  Zero-Data Offline Study and Resource Access
+                  Offline Study and Resource Access
                 </h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Download study materials or open quizzes while connected to
-                  the school's internet, then review modules, notes,
-                  announcements, and other resources offline.
+                  Download or cache study materials or open quizzes while
+                  connected to the internet either in school or areas where
+                  there is more internet access, then review modules(courses),
+                  notes, announcements, and other resources any time offline.
                 </p>
               </div>
 
@@ -440,9 +435,12 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                   Auto-Syncing Quiz
                 </h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Quizzes taken offline calculate score sheets immediately. Your
-                  grades are securely queued in the browser's storage and
-                  synchronized when internet is restored.
+                  You can take quizzes any time even offline once they are
+                  loaded to the app. Even though you take it offline, your
+                  results are calculated immediatly based on provided answer.
+                  The quiz results then securly stored in the browser local
+                  storage. Once your connection is restored, they are
+                  automatically synced.
                 </p>
               </div>
 
@@ -451,12 +449,13 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                   <Phone className="h-5 w-5" />
                 </div>
                 <h3 className="font-bold text-lg text-slate-900">
-                  Integrated SMS Carrier Gate
+                  Integrated SMS Broadcasting
                 </h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Basic phone users receive critical coursework alerts,
-                  deadlines, and grades pushed seamlessly using the Africa's
-                  Talking API SMS system.
+                  You now no longer suffer from delayed or lack of information.
+                  You will receive SMS messages about announcements, exam
+                  deadlines, and other notifications in real time by the phone
+                  number you provided during registration.
                 </p>
               </div>
             </div>
@@ -466,23 +465,25 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
         {activeTab === "about" && (
           <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm space-y-6 max-w-4xl mx-auto">
             <span className="bg-indigo-50 text-indigo-700 text-xs px-3 py-1 rounded-md font-bold uppercase tracking-wider">
-              Our Core Mission
+              Our Mission
             </span>
             <h2 className="text-3xl font-black text-slate-900 leading-none">
               About the Learning Assistant
             </h2>
 
             <p className="text-slate-600 leading-relaxed">
-              In many rural or remote regions, educational content distribution
-              is bottlenecked by weak cellular signals, spotty power grids, and
-              expensive mobile internet tariffs.
+              Nowadays, people suffer from lack of internet access not only
+              because there is no infrastracture or providers, but also because
+              data bundle is getting more and more expensive. Many rural or
+              remote regions suffer more. As result, educational content
+              distribution and access is not balanced in different regions.
             </p>
 
             <div className="border-l-4 border-indigo-500 pl-4 py-1 bg-slate-50 rounded-r-lg">
               <p className="text-sm font-semibold text-indigo-950 italic">
-                Our mission is to establish permanent educational resilience by
-                caching textbooks, PDFs, and evaluations inside the user's
-                mobile device memory.
+                Our mission is to make educational resources accessible, and
+                also create a formal and professional platform to schools to
+                share resources and communicate with students.
               </p>
             </div>
           </div>
@@ -491,10 +492,10 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
         {activeTab === "contact" && (
           <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm space-y-6 max-w-2xl mx-auto">
             <span className="bg-indigo-50 text-indigo-700 text-xs px-3 py-1 rounded-md font-bold uppercase tracking-wider">
-              Support Desks
+              Support Desk
             </span>
             <h2 className="text-3xl font-black text-slate-900 leading-none">
-              Connect With Our IT Desk
+              Connect With Our SupportDesk
             </h2>
 
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-start gap-4">
@@ -504,7 +505,10 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                   SMS Gateway Integration Desk
                 </h4>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Support SMS Code: +250 788 123 456
+                  If you suffer from issues while registering, contact us.
+                  Support SMS/whatsapp Code:{" "}
+                  <span className="bg-grey text-black">+250 000 000 000</span>{" "}
+                  (This not real phone. Used here for education purpose)
                 </p>
               </div>
             </div>
@@ -535,71 +539,6 @@ export default function Home({ isOnline, toast, setToast, onLoginSuccess }) {
                 Close
               </button>
             </div>
-
-            {/* Demo Credentials Quick-Fill Box */}
-            {/*{authMode === "login" && (
-              <div className="bg-indigo-50/80 border border-indigo-200 p-3 rounded-xl space-y-1 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="font-extrabold text-indigo-950">
-                    Quick Fill Demo Accounts (Password:{" "}
-                    <code className="font-mono text-indigo-700 bg-indigo-100 px-1 py-0.5 rounded">
-                      password123
-                    </code>
-                    ):
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleResetDemoAccounts}
-                    className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
-                    title="Reset accounts to default if credentials get blocked"
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                    <span>Reset</span>
-                  </button>
-                </div>
-                <div className="text-[11px] text-indigo-900 space-y-0.5 font-medium">
-                  <p>
-                    • Admin:{" "}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLoginEmail("admin@admin.edu");
-                        setLoginPassword("password123");
-                      }}
-                      className="underline font-bold hover:text-indigo-600"
-                    >
-                      admin@admin.edu
-                    </button>
-                  </p>
-                  <p>
-                    • Teacher:{" "}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLoginEmail("amina@teacher.edu");
-                        setLoginPassword("password123");
-                      }}
-                      className="underline font-bold hover:text-indigo-600"
-                    >
-                      amina@teacher.edu
-                    </button>
-                  </p>
-                  <p>
-                    • Student:{" "}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLoginEmail("natinael@student.edu");
-                        setLoginPassword("password123");
-                      }}
-                      className="underline font-bold hover:text-indigo-600"
-                    >
-                      natinael@student.edu
-                    </button>
-                  </p>
-                </div>
-              </div>
-            )}*/}
 
             {authMode === "login" && (
               <form onSubmit={handleLogin} className="space-y-4">

@@ -32,9 +32,7 @@ export default function ReloadPrompt() {
         )}
         <div>
           <p className="font-bold text-slate-100">
-            {offlineReady
-              ? "App Ready for Offline Use"
-              : "New School Portal Update Available!"}
+            {offlineReady ? "App Ready for Offline Use" : "Update Available!"}
           </p>
           <p className="text-[10px] text-slate-400">
             {offlineReady
