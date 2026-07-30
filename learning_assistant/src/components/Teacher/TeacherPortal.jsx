@@ -774,7 +774,7 @@ export default function TeacherPortal({
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800 pb-12">
+    <div className="space-y-8 animate-fadeIn text-slate-800 pb-12 min-h-screen">
       {/* Dynamic Status Notification Banner */}
       {statusMessage && (
         <div className="fixed top-20 right-6 z-50 animate-bounce">
