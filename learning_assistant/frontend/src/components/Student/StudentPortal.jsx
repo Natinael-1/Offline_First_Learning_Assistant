@@ -562,7 +562,7 @@ export default function StudentPortal({
         if (!rawPayload && navigator.onLine) {
           try {
             const res = await fetch(
-              `http://localhost:8000/api/courses/${courseId}`,
+              `https://offline-first-learning-assistant.onrender.com/api/courses/${courseId}`,
             );
             if (res.ok) {
               const fullCourse = await res.json();

@@ -27,8 +27,13 @@ export default function DocumentReaderModal({
   const [loadStatus, setLoadStatus] = useState("idle"); // 'idle' | 'loading' | 'ready' | 'missing' | 'error'
 
   const summaryContent = activeMaterial?.content || "";
+  /*const fileCacheKey =
+    activeMaterial?.fileCacheKey || activeMaterial?.file_cache_key || null;*/
   const fileCacheKey =
-    activeMaterial?.fileCacheKey || activeMaterial?.file_cache_key || null;
+    activeMaterial?.fileCacheKey ||
+    activeMaterial?.file_cache_key ||
+    (activeMaterial?.id ? `/materials/${activeMaterial.id}` : null);
+
   const fileMimeType =
     activeMaterial?.fileMimeType || activeMaterial?.file_mime_type || "";
   const legacyFilePayload =
@@ -37,13 +42,11 @@ export default function DocumentReaderModal({
     (typeof summaryContent === "string" && summaryContent.startsWith("data:")
       ? summaryContent
       : null);
-
   useEffect(() => {
     let cancelled = false;
     let createdUrl = null;
 
     (async () => {
-      // Single microtask hop before any setState call to avoid synchronous setState warnings
       await Promise.resolve();
       if (cancelled) return;
 
@@ -54,7 +57,7 @@ export default function DocumentReaderModal({
       }
 
       // Path 1: Attempt to load from Cache Storage first
-      if (fileCacheKey) {
+      if (fileCacheKey || activeMaterial?.id) {
         setLoadStatus("loading");
         setBlobUrl(null);
 
@@ -63,8 +66,16 @@ export default function DocumentReaderModal({
             const cache = await caches.open(MATERIALS_CACHE_NAME);
             if (cancelled) return;
 
-            const response = await cache.match(fileCacheKey);
-            if (cancelled) return;
+            // Try primary cache key, then fallback key patterns
+            let response = fileCacheKey
+              ? await cache.match(fileCacheKey)
+              : null;
+            if (!response && activeMaterial?.id) {
+              response = await cache.match(`/materials/${activeMaterial.id}`);
+            }
+            if (!response && activeMaterial?.id) {
+              response = await cache.match(activeMaterial.id);
+            }
 
             // IF FOUND IN CACHE: Render immediately from Cache Storage Blob
             if (response) {
@@ -86,7 +97,6 @@ export default function DocumentReaderModal({
           console.error("Failed to load material from Cache Storage:", err);
         }
 
-        // 💡 ENHANCEMENT: If cache miss occurred and there's no legacy payload either, mark as missing
         if (!legacyFilePayload) {
           if (!cancelled) setLoadStatus("missing");
           return;
@@ -100,7 +110,6 @@ export default function DocumentReaderModal({
         return;
       }
 
-      // 2A: Direct HTTP or Blob links
       if (
         legacyFilePayload.startsWith("http://") ||
         legacyFilePayload.startsWith("https://") ||
@@ -111,7 +120,6 @@ export default function DocumentReaderModal({
         return;
       }
 
-      // 2B: Base64 Data URL payload
       if (legacyFilePayload.startsWith("data:")) {
         setLoadStatus("loading");
         try {
@@ -126,7 +134,6 @@ export default function DocumentReaderModal({
           }
           const blob = new Blob([u8arr], { type: mime });
 
-          // 💡 ENHANCEMENT: Auto-cache this Base64 payload in background for future offline use
           if (fileCacheKey && "caches" in window) {
             caches.open(MATERIALS_CACHE_NAME).then((cache) => {
               const cacheResponse = new Response(blob, {
