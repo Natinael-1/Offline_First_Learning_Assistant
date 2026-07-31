@@ -931,7 +931,7 @@ export default function TeacherPortal({
             <div className="pt-2 flex items-center gap-4 text-xs text-slate-400 font-medium">
               <span className="flex items-center gap-1">
                 <Users className="h-3.5 w-3.5 text-indigo-400" />
-                {activeCourse.enrolledStudents || 28} Enrolled Students
+                {activeCourse.enrolledStudents} Enrolled Students
               </span>
               <span>&bull;</span>
               <span>{activeCourse.materials?.length || 0} Materials</span>

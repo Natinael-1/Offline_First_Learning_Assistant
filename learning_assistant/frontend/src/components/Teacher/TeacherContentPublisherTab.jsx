@@ -650,7 +650,7 @@ const getMaterialFileURL = async (cacheKey) => {
   }
 };
 
-function MaterialPreviewModal({ material, onClose }) {
+/*function MaterialPreviewModal({ material, onClose }) {
   const [fileURL, setFileURL] = useState(null);
   const [status, setStatus] = useState("loading"); // 'loading' | 'ready' | 'missing' | 'error'
 
@@ -661,6 +661,7 @@ function MaterialPreviewModal({ material, onClose }) {
     const load = async () => {
       // 💡 1. Check direct URL / Base64 / backend file_url first!
       const directUrl =
+        material.file_data ||
         material.fileData ||
         material.file_url ||
         material.fileUrl ||
@@ -717,6 +718,78 @@ function MaterialPreviewModal({ material, onClose }) {
     (typeof fileURL === "string" &&
       (fileURL.startsWith("data:application/pdf") ||
         fileURL.toLowerCase().includes(".pdf")));
+ */
+function MaterialPreviewModal({ material, onClose }) {
+  const [fileURL, setFileURL] = useState(null);
+  const [status, setStatus] = useState("loading"); // 'loading' | 'ready' | 'missing' | 'error'
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectURL = null;
+
+    const load = async () => {
+      // 💡 1. Check direct URL / Base64 / backend file_data / file_url first!
+      const directUrl =
+        material.file_data || // FastAPI / PostgreSQL DB field!
+        material.fileData || // Local browser RAM before sync
+        material.file_url || // Alternative URL field
+        material.fileUrl ||
+        material.url ||
+        material.pdfUrl;
+
+      if (directUrl) {
+        if (!cancelled) {
+          setFileURL(directUrl);
+          setStatus("ready");
+        }
+        return;
+      }
+
+      // 💡 2. Fallback to Service Worker Cache Storage API
+      if (material.fileCacheKey) {
+        try {
+          const url = await getMaterialFileURL(material.fileCacheKey);
+          if (cancelled) return;
+          if (url) {
+            objectURL = url;
+            setFileURL(url);
+            setStatus("ready");
+            return;
+          }
+        } catch {
+          if (!cancelled) {
+            setStatus("error");
+            return;
+          }
+        }
+      }
+
+      // 💡 3. If no file payload exists anywhere
+      if (!cancelled) {
+        setStatus("missing");
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+      if (objectURL) URL.revokeObjectURL(objectURL);
+    };
+  }, [material]);
+
+  // 💡 Comprehensive PDF detector covering FastAPI schema keys, MIME types, extensions, and Base64 payloads
+  const isPdf =
+    material.fileMimeType === "application/pdf" ||
+    material.file_type === "pdf" || // 👈 Matches FastAPI schema key
+    material.type === "pdf" ||
+    (material.fileName && material.fileName.toLowerCase().endsWith(".pdf")) ||
+    (material.title && material.title.toLowerCase().endsWith(".pdf")) ||
+    (typeof fileURL === "string" &&
+      (fileURL.startsWith("data:application/pdf") ||
+        fileURL.toLowerCase().includes(".pdf"))) ||
+    (typeof material.file_data === "string" &&
+      material.file_data.startsWith("data:application/pdf"));
 
   return (
     <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
@@ -1137,7 +1210,10 @@ export default function TeacherContentPublisherTab({
                 </div>
 
                 <button
-                  onClick={() => setShowPreviewModal(mat)}
+                  onClick={() => {
+                    setShowPreviewModal(mat);
+                    console.log(mat);
+                  }}
                   className="self-start sm:self-auto bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 text-xs font-bold px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 shrink-0"
                 >
                   <Eye className="h-3.5 w-3.5" />
